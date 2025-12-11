@@ -184,16 +184,18 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
               contentContainerStyle={styles.previewScroll}
             >
               {capturedImages.map((file, index) => (
-                <View key={file.id} style={styles.previewCard}>
-                  <Image source={{ uri: file.uri }} style={styles.previewImage} />
-                  <View style={styles.pageLabel}>
-                    <Text style={styles.pageLabelText}>{index + 1}</Text>
+                <View key={file.id} style={styles.previewCardWrapper}>
+                  <View style={styles.previewCard}>
+                    <Image source={{ uri: file.uri }} style={styles.previewImage} />
+                    <View style={styles.pageLabel}>
+                      <Text style={styles.pageLabelText}>{index + 1}</Text>
+                    </View>
                   </View>
                   <TouchableOpacity
-                    style={styles.removeButton}
+                    style={styles.previewRemoveButton}
                     onPress={() => handleRemoveImage(file.id)}
                   >
-                    <Ionicons name="close" size={14} color="#FFFFFF" />
+                    <Ionicons name="close" size={12} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -399,7 +401,12 @@ const styles = StyleSheet.create({
   },
   previewScroll: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+  },
+  previewCardWrapper: {
+    position: 'relative',
+    marginRight: Spacing.sm,
+    paddingTop: 10,
+    paddingRight: 10,
   },
   previewCard: {
     width: 70,
@@ -407,7 +414,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
     backgroundColor: '#333',
-    marginRight: Spacing.sm,
   },
   previewImage: {
     width: '100%',
@@ -427,14 +433,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  removeButton: {
+  previewRemoveButton: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#333333',
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#666',
     alignItems: 'center',
     justifyContent: 'center',
   },
