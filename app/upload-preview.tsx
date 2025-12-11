@@ -3,30 +3,25 @@
  * Preview captured/selected files before upload
  */
 
-import React, { useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
     Alert,
     KeyboardAvoidingView,
     Platform,
-    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import {
-    DocumentTypeSelector,
-    FileThumbnail,
-    NotesInput,
-} from '@/components/documents';
-import { Colors, BorderRadius, Spacing, Typography, Shadows } from '@/constants/theme';
+import { DocumentTypeSelector, FileThumbnail, NotesInput } from '@/components/documents';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DocumentFile, DocumentType, DocumentTypeLabels } from '@/types/document';
+import { type DocumentFile, type DocumentType, DocumentTypeLabels } from '@/types/document';
 
 export default function UploadPreviewScreen() {
     const colorScheme = useColorScheme() ?? 'light';
@@ -36,9 +31,9 @@ export default function UploadPreviewScreen() {
     // Parse files from params
     const initialFiles: DocumentFile[] = params.files
         ? JSON.parse(params.files).map((f: DocumentFile) => ({
-            ...f,
-            createdAt: new Date(f.createdAt),
-        }))
+              ...f,
+              createdAt: new Date(f.createdAt),
+          }))
         : [];
 
     const [files, setFiles] = useState<DocumentFile[]>(initialFiles);
@@ -72,25 +67,21 @@ export default function UploadPreviewScreen() {
                         text: 'OK',
                         onPress: () => router.replace('/(tabs)'),
                     },
-                ]
+                ],
             );
         }, 1000);
     };
 
     const handleCancel = () => {
         if (files.length > 0) {
-            Alert.alert(
-                'Discard Files?',
-                'Are you sure you want to discard these files?',
-                [
-                    { text: 'Keep Editing', style: 'cancel' },
-                    {
-                        text: 'Discard',
-                        style: 'destructive',
-                        onPress: () => router.back(),
-                    },
-                ]
-            );
+            Alert.alert('Discard Files?', 'Are you sure you want to discard these files?', [
+                { text: 'Keep Editing', style: 'cancel' },
+                {
+                    text: 'Discard',
+                    style: 'destructive',
+                    onPress: () => router.back(),
+                },
+            ]);
         } else {
             router.back();
         }
@@ -166,12 +157,19 @@ export default function UploadPreviewScreen() {
                             <TouchableOpacity
                                 style={[
                                     styles.addMoreButton,
-                                    { backgroundColor: colors.cardSecondary, borderColor: colors.border },
+                                    {
+                                        backgroundColor: colors.cardSecondary,
+                                        borderColor: colors.border,
+                                    },
                                 ]}
                                 onPress={handleAddMore}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="add-circle-outline" size={32} color={colors.primary} />
+                                <Ionicons
+                                    name="add-circle-outline"
+                                    size={32}
+                                    color={colors.primary}
+                                />
                                 <Text style={[styles.addMoreText, { color: colors.textMuted }]}>
                                     Add More
                                 </Text>

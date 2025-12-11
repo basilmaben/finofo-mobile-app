@@ -3,18 +3,11 @@
  * Displays a preview of an uploaded file with remove option
  */
 
+import { Ionicons } from '@expo/vector-icons';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DocumentFile } from '@/types/document';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import {
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import type { DocumentFile } from '@/types/document';
 
 interface FileThumbnailProps {
     file: DocumentFile;
@@ -72,11 +65,7 @@ export function FileThumbnail({
                     <Image source={{ uri: file.uri }} style={styles.image} resizeMode="cover" />
                 ) : (
                     <View style={styles.iconContainer}>
-                        <Ionicons
-                            name={getFileIcon()}
-                            size={dimension * 0.4}
-                            color={colors.text}
-                        />
+                        <Ionicons name={getFileIcon()} size={dimension * 0.4} color={colors.text} />
                         {isPdf && (
                             <Text style={[styles.pdfLabel, { color: colors.text }]}>PDF</Text>
                         )}

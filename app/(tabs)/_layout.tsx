@@ -3,9 +3,8 @@
  * Single tab focused on Document Capture
  */
 
-import { Tabs } from 'expo-router';
-import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
@@ -34,7 +33,8 @@ export default function TabLayout() {
                     fontWeight: '600',
                     marginTop: 4,
                 },
-            }}>
+            }}
+        >
             <Tabs.Screen
                 name="index"
                 options={{

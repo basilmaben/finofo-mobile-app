@@ -3,23 +3,23 @@
  * Full-screen camera for capturing document images (single & multi-page)
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { type CameraType, CameraView, type FlashMode, useCameraPermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useRef, useState } from 'react';
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
     Alert,
+    Image,
     Platform,
     ScrollView,
-    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { BorderRadius, Spacing, Typography } from '@/constants/theme';
-import { DocumentFile } from '@/types/document';
+import type { DocumentFile } from '@/types/document';
 
 interface CameraCaptureProps {
     onCapture: (files: DocumentFile[]) => void;
@@ -42,7 +42,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
         if (!permission?.granted) {
             requestPermission();
         }
-    }, [permission]);
+    }, [permission, requestPermission]);
 
     const handleCapture = async () => {
         if (!cameraRef.current || isCapturing) return;
@@ -230,7 +230,10 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
 
                         {/* Shutter Button */}
                         <TouchableOpacity
-                            style={[styles.shutterButton, isCapturing && styles.shutterButtonActive]}
+                            style={[
+                                styles.shutterButton,
+                                isCapturing && styles.shutterButtonActive,
+                            ]}
                             onPress={handleCapture}
                             disabled={isCapturing}
                             activeOpacity={0.7}

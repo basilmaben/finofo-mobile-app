@@ -3,24 +3,16 @@
  * Main screen for capturing documents via camera, file picker, or share activity
  */
 
-import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    ScrollView,
-    Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import { Colors, BorderRadius, Spacing, Typography, Shadows } from '@/constants/theme';
+import { router } from 'expo-router';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DocumentFile } from '@/types/document';
+import type { DocumentFile } from '@/types/document';
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -119,11 +111,7 @@ export default function CaptureScreen() {
 
                 {/* Hero Card - Camera Capture */}
                 <TouchableOpacity
-                    style={[
-                        styles.heroCard,
-                        { backgroundColor: colors.primary },
-                        Shadows.md,
-                    ]}
+                    style={[styles.heroCard, { backgroundColor: colors.primary }, Shadows.md]}
                     onPress={handleOpenCamera}
                     activeOpacity={0.85}
                 >
@@ -134,12 +122,22 @@ export default function CaptureScreen() {
                         <Text style={[styles.heroTitle, { color: colors.background }]}>
                             Scan Document
                         </Text>
-                        <Text style={[styles.heroDescription, { color: colors.background, opacity: 0.8 }]}>
+                        <Text
+                            style={[
+                                styles.heroDescription,
+                                { color: colors.background, opacity: 0.8 },
+                            ]}
+                        >
                             Capture single or multi-page documents using your camera
                         </Text>
                     </View>
                     <View style={styles.heroArrow}>
-                        <Ionicons name="arrow-forward-circle" size={32} color={colors.background} style={{ opacity: 0.6 }} />
+                        <Ionicons
+                            name="arrow-forward-circle"
+                            size={32}
+                            color={colors.background}
+                            style={{ opacity: 0.6 }}
+                        />
                     </View>
                 </TouchableOpacity>
 
@@ -159,14 +157,21 @@ export default function CaptureScreen() {
                             onPress={handlePickFromGallery}
                             activeOpacity={0.7}
                         >
-                            <View style={[styles.sourceIconContainer, { backgroundColor: colors.cardSecondary }]}>
+                            <View
+                                style={[
+                                    styles.sourceIconContainer,
+                                    { backgroundColor: colors.cardSecondary },
+                                ]}
+                            >
                                 <Ionicons name="images" size={28} color={colors.text} />
                             </View>
                             <View style={styles.sourceContent}>
                                 <Text style={[styles.sourceTitle, { color: colors.text }]}>
                                     Photo Library
                                 </Text>
-                                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
+                                <Text
+                                    style={[styles.sourceDescription, { color: colors.textMuted }]}
+                                >
                                     Select images from your photos
                                 </Text>
                             </View>
@@ -182,14 +187,21 @@ export default function CaptureScreen() {
                             onPress={handlePickFromFiles}
                             activeOpacity={0.7}
                         >
-                            <View style={[styles.sourceIconContainer, { backgroundColor: colors.cardSecondary }]}>
+                            <View
+                                style={[
+                                    styles.sourceIconContainer,
+                                    { backgroundColor: colors.cardSecondary },
+                                ]}
+                            >
                                 <Ionicons name="folder-open" size={28} color={colors.text} />
                             </View>
                             <View style={styles.sourceContent}>
                                 <Text style={[styles.sourceTitle, { color: colors.text }]}>
                                     Files
                                 </Text>
-                                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
+                                <Text
+                                    style={[styles.sourceDescription, { color: colors.textMuted }]}
+                                >
                                     Browse iCloud, Google Drive, or local storage
                                 </Text>
                             </View>
@@ -226,19 +238,25 @@ export default function CaptureScreen() {
                         Supported Formats
                     </Text>
                     <View style={styles.formatsRow}>
-                        <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
+                        <View
+                            style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}
+                        >
                             <Ionicons name="image" size={16} color={colors.text} />
                             <Text style={[styles.formatText, { color: colors.textSecondary }]}>
                                 JPG, PNG
                             </Text>
                         </View>
-                        <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
+                        <View
+                            style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}
+                        >
                             <Ionicons name="document-text" size={16} color={colors.text} />
                             <Text style={[styles.formatText, { color: colors.textSecondary }]}>
                                 PDF
                             </Text>
                         </View>
-                        <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
+                        <View
+                            style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}
+                        >
                             <Ionicons name="documents" size={16} color={colors.text} />
                             <Text style={[styles.formatText, { color: colors.textSecondary }]}>
                                 Multi-page

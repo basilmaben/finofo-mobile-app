@@ -49,6 +49,7 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
     "@graphql-codegen/cli": "6.1.0",
     "@graphql-codegen/client-preset": "5.2.1",
     "@graphql-codegen/introspection": "^5.0.0",

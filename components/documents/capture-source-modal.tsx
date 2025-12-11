@@ -3,18 +3,10 @@
  * Bottom sheet modal for selecting document capture source
  */
 
+import { Ionicons } from '@expo/vector-icons';
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
 
 interface CaptureSourceModalProps {
     visible: boolean;
@@ -88,11 +80,7 @@ export function CaptureSourceModal({
         >
             <Pressable style={styles.overlay} onPress={onClose}>
                 <Pressable
-                    style={[
-                        styles.sheet,
-                        { backgroundColor: colors.card },
-                        Shadows.lg,
-                    ]}
+                    style={[styles.sheet, { backgroundColor: colors.card }, Shadows.lg]}
                     onPress={(e) => e.stopPropagation()}
                 >
                     {/* Handle */}
@@ -115,23 +103,40 @@ export function CaptureSourceModal({
                                 key={option.id}
                                 style={[
                                     styles.option,
-                                    { backgroundColor: colors.cardSecondary, borderColor: colors.border },
+                                    {
+                                        backgroundColor: colors.cardSecondary,
+                                        borderColor: colors.border,
+                                    },
                                 ]}
                                 onPress={() => handleOptionPress(option)}
                                 activeOpacity={0.7}
                             >
-                                <View style={[styles.iconContainer, { backgroundColor: `${option.color}15` }]}>
+                                <View
+                                    style={[
+                                        styles.iconContainer,
+                                        { backgroundColor: `${option.color}15` },
+                                    ]}
+                                >
                                     <Ionicons name={option.icon} size={28} color={option.color} />
                                 </View>
                                 <View style={styles.optionContent}>
                                     <Text style={[styles.optionLabel, { color: colors.text }]}>
                                         {option.label}
                                     </Text>
-                                    <Text style={[styles.optionDescription, { color: colors.textMuted }]}>
+                                    <Text
+                                        style={[
+                                            styles.optionDescription,
+                                            { color: colors.textMuted },
+                                        ]}
+                                    >
                                         {option.description}
                                     </Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={20}
+                                    color={colors.textMuted}
+                                />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -141,7 +146,9 @@ export function CaptureSourceModal({
                         style={[styles.cancelButton, { backgroundColor: colors.cardSecondary }]}
                         onPress={onClose}
                     >
-                        <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                        <Text style={[styles.cancelText, { color: colors.textSecondary }]}>
+                            Cancel
+                        </Text>
                     </TouchableOpacity>
                 </Pressable>
             </Pressable>
@@ -220,4 +227,3 @@ const styles = StyleSheet.create({
         ...Typography.bodyBold,
     },
 });
-

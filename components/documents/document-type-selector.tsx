@@ -3,24 +3,22 @@
  * Allows user to select the type of document being uploaded
  */
 
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DocumentType, DocumentTypeLabels } from '@/types/document';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { type DocumentType, DocumentTypeLabels } from '@/types/document';
 
 interface DocumentTypeSelectorProps {
     selectedType: DocumentType;
     onSelect: (type: DocumentType) => void;
 }
 
-const documentTypes: { type: DocumentType; icon: keyof typeof Ionicons.glyphMap; description: string }[] = [
+const documentTypes: {
+    type: DocumentType;
+    icon: keyof typeof Ionicons.glyphMap;
+    description: string;
+}[] = [
     {
         type: 'packing_slip',
         icon: 'cube-outline',
@@ -91,7 +89,10 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
                             <Text
                                 style={[
                                     styles.optionDescription,
-                                    { color: isSelected ? colors.background : colors.textMuted, opacity: isSelected ? 0.8 : 1 },
+                                    {
+                                        color: isSelected ? colors.background : colors.textMuted,
+                                        opacity: isSelected ? 0.8 : 1,
+                                    },
                                 ]}
                                 numberOfLines={1}
                             >
@@ -99,7 +100,11 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
                             </Text>
                             {isSelected && (
                                 <View style={styles.checkmark}>
-                                    <Ionicons name="checkmark-circle" size={20} color={colors.background} />
+                                    <Ionicons
+                                        name="checkmark-circle"
+                                        size={20}
+                                        color={colors.background}
+                                    />
                                 </View>
                             )}
                         </TouchableOpacity>

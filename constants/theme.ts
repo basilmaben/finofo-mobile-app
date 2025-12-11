@@ -145,7 +145,7 @@ export const Fonts = Platform.select({
         sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
         serif: "Georgia, 'Times New Roman', serif",
         rounded: "'SF Pro Rounded', sans-serif",
-        mono: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        mono: 'SFMono-Regular, Menlo, Monaco, Consolas, monospace',
     },
 });
 
