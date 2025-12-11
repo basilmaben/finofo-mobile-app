@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/clerk-expo";
 import React from "react";
-import { wireTokenGetter } from "./links";
+import { wireTokenGetter } from "./links/authLink";
 
 export function WireClerk() {
   const { getToken } = useAuth();
