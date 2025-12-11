@@ -1,0 +1,58 @@
+fragment VendorBasics on Vendor {
+  id
+  name
+}
+
+fragment PurchaseOrderTable on PurchaseOrderDocument {
+  id
+  purchaseOrderNumber
+  vendor {
+    ...VendorBasics
+  }
+  vendorName
+  createdAt
+  totalAmount
+  status
+  currency
+  exceptions {
+    id
+    type
+  }
+  invoices {
+    id
+  }
+  packingSlips {
+    id
+  }
+}
+
+query GetPurchaseOrderTable(
+  $first: Int!
+  $after: String
+  $before: String
+  $last: Int
+  $sort: [PurchaseOrderSort!]
+  $filter: [PurchaseOrderFilter!]
+) {
+  purchaseOrders(
+    first: $first
+    after: $after
+    before: $before
+    last: $last
+    sort: $sort
+    filter: $filter
+  ) {
+    edges {
+      node {
+        ...PurchaseOrderTable
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}
