@@ -60,12 +60,11 @@ function AppContent() {
     <ThemeProvider
       value={colorScheme === "dark" ? FinofoDarkTheme : FinofoLightTheme}
     >
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="capture"
           options={{
-            headerShown: false,
             presentation: "fullScreenModal",
             animation: "fade",
           }}
@@ -73,14 +72,14 @@ function AppContent() {
         <Stack.Screen
           name="upload-preview"
           options={{
-            headerShown: false,
             presentation: "modal",
             animation: "slide_from_bottom",
           }}
         />
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="modules" />
+        <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
