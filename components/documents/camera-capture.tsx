@@ -6,6 +6,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type CameraType, CameraView, type FlashMode, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -113,6 +114,35 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
   const toggleFacing = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
+  };
+
+  const pickFromGallery = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.85,
+        orderedSelection: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newFiles: DocumentFile[] = result.assets.map((asset, index) => ({
+          id: generateId(),
+          uri: asset.uri,
+          name: asset.fileName || `Photo_${capturedImages.length + index + 1}.jpg`,
+          type: asset.mimeType || 'image/jpeg',
+          size: asset.fileSize || 0,
+          createdAt: new Date(),
+        }));
+
+        setCapturedImages((prev) => [...prev, ...newFiles]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error('Gallery picker error:', error);
+      Alert.alert('Error', 'Failed to access photo library.');
+    }
   };
 
   // Permission loading state
@@ -232,15 +262,11 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
 
           {/* Capture Controls */}
           <View style={styles.captureRow}>
-            {/* Done Button (when pages captured) */}
-            {multiPage && capturedImages.length > 0 ? (
-              <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-                <Ionicons name="checkmark" size={22} color="#000000" />
-                <Text style={styles.doneButtonText}>Done</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.placeholderButton} />
-            )}
+            {/* Gallery Button (left side) */}
+            <TouchableOpacity style={styles.galleryButton} onPress={pickFromGallery}>
+              <Ionicons name="images-outline" size={22} color="#FFFFFF" />
+              <Text style={styles.galleryButtonText}>Gallery</Text>
+            </TouchableOpacity>
 
             {/* Shutter Button */}
             <TouchableOpacity
@@ -252,11 +278,11 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
               <View style={styles.shutterInner} />
             </TouchableOpacity>
 
-            {/* Add Page Button (multi-page) or placeholder */}
+            {/* Done Button (right side) - only when pages captured */}
             {multiPage && capturedImages.length > 0 ? (
-              <TouchableOpacity style={styles.addPageButton} onPress={handleCapture}>
-                <Ionicons name="add" size={24} color="#000000" />
-                <Text style={styles.addPageText}>Add</Text>
+              <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+                <Ionicons name="checkmark" size={22} color="#000000" />
+                <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.placeholderButton} />
@@ -516,6 +542,21 @@ const styles = StyleSheet.create({
     ...Typography.captionBold,
     color: '#000000',
   },
+  galleryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    minWidth: 70,
+    justifyContent: 'center',
+  },
+  galleryButtonText: {
+    ...Typography.captionBold,
+    color: '#FFFFFF',
+  },
   shutterButton: {
     width: 80,
     height: 80,
@@ -534,21 +575,6 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
-  },
-  addPageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    minWidth: 70,
-    justifyContent: 'center',
-  },
-  addPageText: {
-    ...Typography.captionBold,
-    color: '#000000',
   },
   captureHint: {
     ...Typography.caption,
