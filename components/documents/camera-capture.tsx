@@ -68,7 +68,6 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                     setCapturedImages((prev) => [...prev, newFile]);
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 } else {
-                    // Single page mode - immediately return
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     onCapture([newFile]);
                 }
@@ -128,7 +127,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                         Grant camera permission to capture documents
                     </Text>
                     <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-                        <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                        <Ionicons name="checkmark-circle" size={20} color="#000000" />
                         <Text style={styles.permissionButtonText}>Grant Permission</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.cancelLink} onPress={onClose}>
@@ -216,7 +215,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                         {/* Done Button (when pages captured) */}
                         {multiPage && capturedImages.length > 0 ? (
                             <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-                                <Ionicons name="checkmark" size={22} color="#FFFFFF" />
+                                <Ionicons name="checkmark" size={22} color="#000000" />
                                 <Text style={styles.doneButtonText}>Done</Text>
                             </TouchableOpacity>
                         ) : (
@@ -236,7 +235,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                         {/* Add Page Button (multi-page) or placeholder */}
                         {multiPage && capturedImages.length > 0 ? (
                             <TouchableOpacity style={styles.addPageButton} onPress={handleCapture}>
-                                <Ionicons name="add" size={24} color="#FFFFFF" />
+                                <Ionicons name="add" size={24} color="#000000" />
                                 <Text style={styles.addPageText}>Add</Text>
                             </TouchableOpacity>
                         ) : (
@@ -289,14 +288,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.sm,
-        backgroundColor: '#FF6B5B',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: Spacing.xl,
         paddingVertical: Spacing.md,
         borderRadius: BorderRadius.lg,
     },
     permissionButtonText: {
         ...Typography.bodyBold,
-        color: '#FFFFFF',
+        color: '#000000',
     },
     cancelLink: {
         marginTop: Spacing.lg,
@@ -431,7 +430,7 @@ const styles = StyleSheet.create({
         width: 22,
         height: 22,
         borderRadius: 11,
-        backgroundColor: '#EF4444',
+        backgroundColor: '#333333',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -470,7 +469,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#00D9A5',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.sm,
         borderRadius: BorderRadius.lg,
@@ -479,7 +478,7 @@ const styles = StyleSheet.create({
     },
     doneButtonText: {
         ...Typography.captionBold,
-        color: '#FFFFFF',
+        color: '#000000',
     },
     shutterButton: {
         width: 80,
@@ -504,7 +503,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#FF6B5B',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.sm,
         borderRadius: BorderRadius.lg,
@@ -513,7 +512,7 @@ const styles = StyleSheet.create({
     },
     addPageText: {
         ...Typography.captionBold,
-        color: '#FFFFFF',
+        color: '#000000',
     },
     captureHint: {
         ...Typography.caption,

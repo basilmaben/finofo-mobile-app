@@ -75,21 +75,21 @@ export function FileThumbnail({
                         <Ionicons
                             name={getFileIcon()}
                             size={dimension * 0.4}
-                            color={isPdf ? colors.invoice : colors.textMuted}
+                            color={colors.text}
                         />
                         {isPdf && (
-                            <Text style={[styles.pdfLabel, { color: colors.invoice }]}>PDF</Text>
+                            <Text style={[styles.pdfLabel, { color: colors.text }]}>PDF</Text>
                         )}
                     </View>
                 )}
 
                 {onRemove && (
                     <TouchableOpacity
-                        style={[styles.removeButton, { backgroundColor: colors.failed }]}
+                        style={[styles.removeButton, { backgroundColor: colors.text }]}
                         onPress={onRemove}
                         hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
                     >
-                        <Ionicons name="close" size={14} color="#FFFFFF" />
+                        <Ionicons name="close" size={14} color={colors.background} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -103,9 +103,11 @@ export function FileThumbnail({
                     >
                         {file.name}
                     </Text>
-                    <Text style={[styles.fileSize, { color: colors.textMuted }]}>
-                        {formatFileSize(file.size)}
-                    </Text>
+                    {file.size > 0 && (
+                        <Text style={[styles.fileSize, { color: colors.textMuted }]}>
+                            {formatFileSize(file.size)}
+                        </Text>
+                    )}
                 </View>
             )}
         </View>
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     containerWithDetails: {
-        maxWidth: 100,
+        maxWidth: 140,
     },
     thumbnail: {
         borderRadius: BorderRadius.md,
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     details: {
-        marginTop: Spacing.xs,
+        marginTop: Spacing.sm,
         alignItems: 'center',
     },
     fileName: {
@@ -163,4 +165,3 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 });
-

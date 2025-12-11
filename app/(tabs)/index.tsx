@@ -3,16 +3,14 @@
  * Main screen for capturing documents via camera, file picker, or share activity
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Image,
     Alert,
-    Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +18,6 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import * as Sharing from 'expo-sharing';
 import { Colors, BorderRadius, Spacing, Typography, Shadows } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DocumentFile } from '@/types/document';
@@ -30,8 +27,6 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9
 export default function CaptureScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
-
-    const [selectedFiles, setSelectedFiles] = useState<DocumentFile[]>([]);
 
     // Handle opening camera
     const handleOpenCamera = () => {
@@ -104,42 +99,6 @@ export default function CaptureScreen() {
         }
     };
 
-    // Source option component
-    const SourceOption = ({
-        icon,
-        title,
-        description,
-        color,
-        onPress,
-    }: {
-        icon: keyof typeof Ionicons.glyphMap;
-        title: string;
-        description: string;
-        color: string;
-        onPress: () => void;
-    }) => (
-        <TouchableOpacity
-            style={[
-                styles.sourceOption,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                Shadows.sm,
-            ]}
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <View style={[styles.sourceIconContainer, { backgroundColor: `${color}15` }]}>
-                <Ionicons name={icon} size={32} color={color} />
-            </View>
-            <View style={styles.sourceContent}>
-                <Text style={[styles.sourceTitle, { color: colors.text }]}>{title}</Text>
-                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
-                    {description}
-                </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </TouchableOpacity>
-    );
-
     return (
         <SafeAreaView
             style={[styles.container, { backgroundColor: colors.background }]}
@@ -163,47 +122,79 @@ export default function CaptureScreen() {
                     style={[
                         styles.heroCard,
                         { backgroundColor: colors.primary },
-                        Shadows.glow,
+                        Shadows.md,
                     ]}
                     onPress={handleOpenCamera}
                     activeOpacity={0.85}
                 >
                     <View style={styles.heroIconContainer}>
-                        <Ionicons name="camera" size={48} color="#FFFFFF" />
+                        <Ionicons name="camera" size={48} color={colors.background} />
                     </View>
                     <View style={styles.heroContent}>
-                        <Text style={styles.heroTitle}>Scan Document</Text>
-                        <Text style={styles.heroDescription}>
+                        <Text style={[styles.heroTitle, { color: colors.background }]}>
+                            Scan Document
+                        </Text>
+                        <Text style={[styles.heroDescription, { color: colors.background, opacity: 0.8 }]}>
                             Capture single or multi-page documents using your camera
                         </Text>
                     </View>
                     <View style={styles.heroArrow}>
-                        <Ionicons name="arrow-forward-circle" size={32} color="rgba(255,255,255,0.8)" />
+                        <Ionicons name="arrow-forward-circle" size={32} color={colors.background} style={{ opacity: 0.6 }} />
                     </View>
                 </TouchableOpacity>
 
                 {/* Other Sources */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
                         Or choose from
                     </Text>
 
                     <View style={styles.sourcesList}>
-                        <SourceOption
-                            icon="images"
-                            title="Photo Library"
-                            description="Select images from your photos"
-                            color={colors.success}
+                        {/* Photo Library */}
+                        <TouchableOpacity
+                            style={[
+                                styles.sourceOption,
+                                { backgroundColor: colors.card, borderColor: colors.border },
+                            ]}
                             onPress={handlePickFromGallery}
-                        />
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.sourceIconContainer, { backgroundColor: colors.cardSecondary }]}>
+                                <Ionicons name="images" size={28} color={colors.text} />
+                            </View>
+                            <View style={styles.sourceContent}>
+                                <Text style={[styles.sourceTitle, { color: colors.text }]}>
+                                    Photo Library
+                                </Text>
+                                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
+                                    Select images from your photos
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                        </TouchableOpacity>
 
-                        <SourceOption
-                            icon="folder-open"
-                            title="Files"
-                            description="Browse iCloud, Google Drive, or local storage"
-                            color={colors.accent}
+                        {/* Files */}
+                        <TouchableOpacity
+                            style={[
+                                styles.sourceOption,
+                                { backgroundColor: colors.card, borderColor: colors.border },
+                            ]}
                             onPress={handlePickFromFiles}
-                        />
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.sourceIconContainer, { backgroundColor: colors.cardSecondary }]}>
+                                <Ionicons name="folder-open" size={28} color={colors.text} />
+                            </View>
+                            <View style={styles.sourceContent}>
+                                <Text style={[styles.sourceTitle, { color: colors.text }]}>
+                                    Files
+                                </Text>
+                                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
+                                    Browse iCloud, Google Drive, or local storage
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -215,8 +206,8 @@ export default function CaptureScreen() {
                             { backgroundColor: colors.cardSecondary, borderColor: colors.border },
                         ]}
                     >
-                        <View style={[styles.infoIconContainer, { backgroundColor: `${colors.warning}15` }]}>
-                            <Ionicons name="share-outline" size={24} color={colors.warning} />
+                        <View style={[styles.infoIconContainer, { backgroundColor: colors.card }]}>
+                            <Ionicons name="share-outline" size={24} color={colors.text} />
                         </View>
                         <View style={styles.infoContent}>
                             <Text style={[styles.infoTitle, { color: colors.text }]}>
@@ -231,24 +222,24 @@ export default function CaptureScreen() {
 
                 {/* Supported Formats */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
                         Supported Formats
                     </Text>
                     <View style={styles.formatsRow}>
                         <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
-                            <Ionicons name="image" size={16} color={colors.success} />
+                            <Ionicons name="image" size={16} color={colors.text} />
                             <Text style={[styles.formatText, { color: colors.textSecondary }]}>
                                 JPG, PNG
                             </Text>
                         </View>
                         <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
-                            <Ionicons name="document-text" size={16} color={colors.primary} />
+                            <Ionicons name="document-text" size={16} color={colors.text} />
                             <Text style={[styles.formatText, { color: colors.textSecondary }]}>
                                 PDF
                             </Text>
                         </View>
                         <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
-                            <Ionicons name="documents" size={16} color={colors.accent} />
+                            <Ionicons name="documents" size={16} color={colors.text} />
                             <Text style={[styles.formatText, { color: colors.textSecondary }]}>
                                 Multi-page
                             </Text>
@@ -295,7 +286,7 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: 'rgba(255,255,255,0.15)',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: Spacing.md,
@@ -305,12 +296,10 @@ const styles = StyleSheet.create({
     },
     heroTitle: {
         ...Typography.h3,
-        color: '#FFFFFF',
         marginBottom: 4,
     },
     heroDescription: {
         ...Typography.caption,
-        color: 'rgba(255,255,255,0.85)',
     },
     heroArrow: {
         marginLeft: Spacing.sm,
@@ -339,8 +328,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     sourceIconContainer: {
-        width: 56,
-        height: 56,
+        width: 52,
+        height: 52,
         borderRadius: BorderRadius.md,
         alignItems: 'center',
         justifyContent: 'center',

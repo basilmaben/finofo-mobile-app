@@ -44,15 +44,10 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
 
     return (
         <View style={styles.container}>
-            <Text style={[styles.title, { color: colors.text }]}>Document Type</Text>
+            <Text style={[styles.title, { color: colors.textSecondary }]}>Document Type</Text>
             <View style={styles.optionsContainer}>
                 {documentTypes.map(({ type, icon, description }) => {
                     const isSelected = selectedType === type;
-                    const typeColor = type === 'packing_slip'
-                        ? colors.packingSlip
-                        : type === 'invoice'
-                            ? colors.invoice
-                            : colors.po;
 
                     return (
                         <TouchableOpacity
@@ -60,10 +55,10 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
                             style={[
                                 styles.option,
                                 {
-                                    backgroundColor: isSelected ? typeColor : colors.card,
-                                    borderColor: isSelected ? typeColor : colors.border,
+                                    backgroundColor: isSelected ? colors.primary : colors.card,
+                                    borderColor: isSelected ? colors.primary : colors.border,
                                 },
-                                isSelected && Shadows.md,
+                                isSelected && Shadows.sm,
                             ]}
                             onPress={() => onSelect(type)}
                             activeOpacity={0.7}
@@ -72,20 +67,22 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
                                 style={[
                                     styles.iconContainer,
                                     {
-                                        backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colors.cardSecondary,
+                                        backgroundColor: isSelected
+                                            ? 'rgba(255,255,255,0.15)'
+                                            : colors.cardSecondary,
                                     },
                                 ]}
                             >
                                 <Ionicons
                                     name={icon}
                                     size={24}
-                                    color={isSelected ? '#FFFFFF' : typeColor}
+                                    color={isSelected ? colors.background : colors.text}
                                 />
                             </View>
                             <Text
                                 style={[
                                     styles.optionLabel,
-                                    { color: isSelected ? '#FFFFFF' : colors.text },
+                                    { color: isSelected ? colors.background : colors.text },
                                 ]}
                                 numberOfLines={1}
                             >
@@ -94,7 +91,7 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
                             <Text
                                 style={[
                                     styles.optionDescription,
-                                    { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.textMuted },
+                                    { color: isSelected ? colors.background : colors.textMuted, opacity: isSelected ? 0.8 : 1 },
                                 ]}
                                 numberOfLines={1}
                             >
@@ -102,7 +99,7 @@ export function DocumentTypeSelector({ selectedType, onSelect }: DocumentTypeSel
                             </Text>
                             {isSelected && (
                                 <View style={styles.checkmark}>
-                                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                                    <Ionicons name="checkmark-circle" size={20} color={colors.background} />
                                 </View>
                             )}
                         </TouchableOpacity>
@@ -131,7 +128,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: Spacing.md,
         borderRadius: BorderRadius.lg,
-        borderWidth: 2,
+        borderWidth: 1,
         alignItems: 'center',
         position: 'relative',
     },
@@ -158,4 +155,3 @@ const styles = StyleSheet.create({
         right: Spacing.xs,
     },
 });
-
