@@ -3,31 +3,31 @@
  * Uses expo-share-intent to receive shared images and PDFs
  */
 
-import { router, usePathname } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useShareIntent } from 'expo-share-intent';
 import { useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 import { useFileBatch } from '@/store/file-batch-store';
 import type { DocumentFile } from '@/types/document';
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 export function useHandleShareIntent() {
-  const { shareIntent, resetShareIntent } = useShareIntent();
-  const { addFiles, files } = useFileBatch();
-  const pathname = usePathname();
-  const processedRef = useRef(false);
+  const { shareIntent, resetShareIntent, hasShareIntent } = useShareIntent();
+  const { addFiles } = useFileBatch();
+  const processedIntentRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Reset processed flag when shareIntent changes
-    if (!shareIntent) {
-      processedRef.current = false;
+    if (!hasShareIntent || !shareIntent) {
       return;
     }
 
-    // Prevent double processing
-    if (processedRef.current) return;
-    processedRef.current = true;
+    // Create a unique key for this intent to prevent double processing
+    const intentKey = JSON.stringify(shareIntent);
+    if (processedIntentRef.current === intentKey) {
+      return;
+    }
+    processedIntentRef.current = intentKey;
 
     const processSharedContent = async () => {
       const newFiles: DocumentFile[] = [];
@@ -35,21 +35,22 @@ export function useHandleShareIntent() {
       // Handle shared files (images, PDFs)
       if (shareIntent.files && shareIntent.files.length > 0) {
         for (const file of shareIntent.files) {
-          // Check if it's an image or PDF
-          const isImage = file.mimeType?.startsWith('image/');
-          const isPdf = file.mimeType === 'application/pdf';
+          const fileAny = file as any;
+          const mimeType = file.mimeType || fileAny.type || '';
+          const isImage = mimeType.startsWith('image/');
+          const isPdf = mimeType === 'application/pdf';
 
-          if (isImage || isPdf) {
-            // Use path or uri, whichever is available
-            const fileUri = file.path || (file as any).uri || '';
+          if (isImage || isPdf || !mimeType) {
+            const fileUri = file.path || fileAny.uri || fileAny.contentUri || '';
 
             if (fileUri) {
               newFiles.push({
                 id: generateId(),
                 uri: fileUri,
-                name: file.fileName || `Shared_${Date.now()}${isPdf ? '.pdf' : '.jpg'}`,
-                type: file.mimeType || (isPdf ? 'application/pdf' : 'image/jpeg'),
-                size: file.size || 0,
+                name:
+                  file.fileName || fileAny.name || `Shared_${Date.now()}${isPdf ? '.pdf' : '.jpg'}`,
+                type: mimeType || (isPdf ? 'application/pdf' : 'image/jpeg'),
+                size: file.size || fileAny.fileSize || 0,
                 createdAt: new Date(),
               });
             }
@@ -57,51 +58,39 @@ export function useHandleShareIntent() {
         }
       }
 
+      // Also check for single image/media share (some apps share differently)
+      if (newFiles.length === 0 && shareIntent.type === 'media') {
+        const mediaUri = (shareIntent as any).mediaUri || (shareIntent as any).uri;
+        if (mediaUri) {
+          newFiles.push({
+            id: generateId(),
+            uri: mediaUri,
+            name: `Shared_${Date.now()}.jpg`,
+            type: 'image/jpeg',
+            size: 0,
+            createdAt: new Date(),
+          });
+        }
+      }
+
       // If we have files to add
       if (newFiles.length > 0) {
-        // Add files to the existing batch (appends to current files)
         addFiles(newFiles);
-
-        const totalFiles = files.length + newFiles.length;
-        const message =
-          files.length > 0
-            ? `Added ${newFiles.length} file(s) to your batch (${totalFiles} total)`
-            : `${newFiles.length} file(s) ready to upload`;
-
-        // Show feedback
-        Alert.alert('Files Added', message, [
-          {
-            text: 'Review & Upload',
-            onPress: () => {
-              // Navigate to upload preview
-              if (pathname !== '/upload-preview') {
-                router.push('/upload-preview');
-              }
-            },
-          },
-          {
-            text: 'Add More',
-            style: 'cancel',
-            onPress: () => {
-              // Stay on main screen to add more
-              if (pathname !== '/(tabs)' && pathname !== '/') {
-                router.replace('/(tabs)');
-              }
-            },
-          },
-        ]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Navigate directly to upload preview
+        router.push('/upload-preview');
       }
 
       // Reset the share intent after processing
       resetShareIntent();
     };
 
-    // Small delay to ensure the app is fully mounted
-    setTimeout(processSharedContent, 300);
-  }, [shareIntent, addFiles, files.length, pathname, resetShareIntent]);
+    // Small delay to ensure the app is fully mounted and redirect has completed
+    setTimeout(processSharedContent, 500);
+  }, [hasShareIntent, shareIntent, addFiles, resetShareIntent]);
 
   return {
-    hasSharedContent: !!shareIntent,
+    hasSharedContent: hasShareIntent,
     sharedFilesCount: shareIntent?.files?.length || 0,
   };
 }
