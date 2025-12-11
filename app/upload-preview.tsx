@@ -4,9 +4,11 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -18,33 +20,35 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DocumentTypeSelector, FileThumbnail, NotesInput } from '@/components/documents';
+import {
+  CaptureSourceModal,
+  DocumentTypeSelector,
+  FileThumbnail,
+  NotesInput,
+} from '@/components/documents';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useFileBatch } from '@/store/file-batch-store';
 import { type DocumentFile, type DocumentType, DocumentTypeLabels } from '@/types/document';
 
 export default function UploadPreviewScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const params = useLocalSearchParams<{ files: string }>();
 
-  // Parse files from params
-  const initialFiles: DocumentFile[] = params.files
-    ? JSON.parse(params.files).map((f: DocumentFile) => ({
-        ...f,
-        createdAt: new Date(f.createdAt),
-      }))
-    : [];
+  // Use shared file batch store
+  const { files, addFiles, removeFile, clearFiles } = useFileBatch();
 
-  const [files, setFiles] = useState<DocumentFile[]>(initialFiles);
   const [documentType, setDocumentType] = useState<DocumentType>('packing_slip');
   const [notes, setNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [showAddSourceModal, setShowAddSourceModal] = useState(false);
 
-  const handleRemoveFile = useCallback((fileId: string) => {
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  const handleRemoveFile = (fileId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
-  }, []);
+    removeFile(fileId);
+  };
 
   const handleUpload = async () => {
     if (files.length === 0) {
@@ -65,7 +69,10 @@ export default function UploadPreviewScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.replace('/(tabs)'),
+            onPress: () => {
+              clearFiles(); // Clear the batch after upload
+              router.replace('/(tabs)');
+            },
           },
         ],
       );
@@ -73,23 +80,81 @@ export default function UploadPreviewScreen() {
   };
 
   const handleCancel = () => {
-    if (files.length > 0) {
-      Alert.alert('Discard Files?', 'Are you sure you want to discard these files?', [
-        { text: 'Keep Editing', style: 'cancel' },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => router.back(),
-        },
-      ]);
-    } else {
-      router.back();
-    }
+    // Just go back - files remain in the batch
+    router.back();
   };
 
   const handleAddMore = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowAddSourceModal(true);
+  };
+
+  // Handle opening camera
+  const handleOpenCamera = () => {
+    setShowAddSourceModal(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push('/capture');
+  };
+
+  // Handle picking from photo library
+  const handlePickFromGallery = async () => {
+    setShowAddSourceModal(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.85,
+        orderedSelection: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newFiles: DocumentFile[] = result.assets.map((asset, index) => ({
+          id: generateId(),
+          uri: asset.uri,
+          name: asset.fileName || `Photo_${files.length + index + 1}.jpg`,
+          type: asset.mimeType || 'image/jpeg',
+          size: asset.fileSize || 0,
+          createdAt: new Date(),
+        }));
+        addFiles(newFiles);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error('Gallery picker error:', error);
+      Alert.alert('Error', 'Failed to access photo library.');
+    }
+  };
+
+  // Handle picking from files (iCloud, Google Drive, local storage)
+  const handlePickFromFiles = async () => {
+    setShowAddSourceModal(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf'],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newFiles: DocumentFile[] = result.assets.map((asset) => ({
+          id: generateId(),
+          uri: asset.uri,
+          name: asset.name,
+          type: asset.mimeType || 'application/octet-stream',
+          size: asset.size || 0,
+          createdAt: new Date(),
+        }));
+        addFiles(newFiles);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error('File picker error:', error);
+      Alert.alert('Error', 'Failed to access files.');
+    }
   };
 
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
@@ -110,9 +175,12 @@ export default function UploadPreviewScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleCancel}>
-            <Ionicons name="close" size={24} color={colors.text} />
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: colors.cardSecondary }]}
+            onPress={handleCancel}
+          >
+            <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>Review & Upload</Text>
@@ -153,16 +221,20 @@ export default function UploadPreviewScreen() {
               <TouchableOpacity
                 style={[
                   styles.addMoreButton,
-                  {
-                    backgroundColor: colors.cardSecondary,
-                    borderColor: colors.border,
-                  },
+                  { backgroundColor: colors.cardSecondary, borderColor: colors.border },
                 ]}
                 onPress={handleAddMore}
                 activeOpacity={0.7}
               >
-                <Ionicons name="add-circle-outline" size={32} color={colors.primary} />
-                <Text style={[styles.addMoreText, { color: colors.textMuted }]}>Add More</Text>
+                <View
+                  style={[
+                    styles.addMoreIconWrapper,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <Ionicons name="add" size={24} color={colors.primary} />
+                </View>
+                <Text style={[styles.addMoreText, { color: colors.textSecondary }]}>Add More</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -179,18 +251,13 @@ export default function UploadPreviewScreen() {
         </ScrollView>
 
         {/* Bottom Action Bar */}
-        <View
-          style={[
-            styles.bottomBar,
-            { backgroundColor: colors.card, borderTopColor: colors.border },
-          ]}
-        >
+        <View style={[styles.bottomBar, { backgroundColor: colors.background }]}>
           <TouchableOpacity
             style={[styles.cancelButton, { borderColor: colors.border }]}
             onPress={handleCancel}
             disabled={isUploading}
           >
-            <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
+            <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Back</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -205,16 +272,29 @@ export default function UploadPreviewScreen() {
             activeOpacity={0.8}
           >
             {isUploading ? (
-              <Text style={styles.uploadButtonText}>Uploading...</Text>
+              <Text style={[styles.uploadButtonText, { color: colors.background }]}>
+                Uploading...
+              </Text>
             ) : (
               <>
-                <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
-                <Text style={styles.uploadButtonText}>Upload</Text>
+                <Text style={[styles.uploadButtonText, { color: colors.background }]}>Upload</Text>
+                <View style={[styles.uploadIconWrapper, { backgroundColor: colors.background }]}>
+                  <Ionicons name="arrow-up" size={16} color={colors.primary} />
+                </View>
               </>
             )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Add Source Modal */}
+      <CaptureSourceModal
+        visible={showAddSourceModal}
+        onClose={() => setShowAddSourceModal(false)}
+        onSelectCamera={handleOpenCamera}
+        onSelectGallery={handlePickFromGallery}
+        onSelectFiles={handlePickFromFiles}
+      />
     </SafeAreaView>
   );
 }
@@ -231,24 +311,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
   },
   headerButton: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 22,
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    ...Typography.bodyBold,
+    ...Typography.h3,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     ...Typography.small,
-    marginTop: 2,
+    marginTop: 4,
   },
   scrollView: {
     flex: 1,
@@ -275,8 +357,8 @@ const styles = StyleSheet.create({
   },
   addMoreButton: {
     width: 140,
-    height: 180,
-    borderRadius: BorderRadius.lg,
+    height: 150,
+    borderRadius: BorderRadius.xl,
     borderWidth: 2,
     borderStyle: 'dashed',
     alignItems: 'center',
@@ -285,21 +367,29 @@ const styles = StyleSheet.create({
   },
   addMoreText: {
     ...Typography.caption,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  addMoreIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bottomBar: {
     flexDirection: 'row',
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
-    borderTopWidth: 1,
+    borderTopWidth: 0,
   },
   cancelButton: {
     flex: 1,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -313,13 +403,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   uploadButtonText: {
     ...Typography.bodyBold,
-    color: '#FFFFFF',
+  },
+  uploadIconWrapper: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

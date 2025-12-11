@@ -41,7 +41,7 @@ export function CaptureSourceModal({
       icon: 'camera',
       label: 'Camera',
       description: 'Capture single or multi-page documents',
-      color: colors.primary,
+      color: colors.text,
       onPress: onSelectCamera,
     },
     {
@@ -49,7 +49,7 @@ export function CaptureSourceModal({
       icon: 'images',
       label: 'Photo Library',
       description: 'Select from your photos',
-      color: colors.success,
+      color: colors.text,
       onPress: onSelectGallery,
     },
     {
@@ -57,7 +57,7 @@ export function CaptureSourceModal({
       icon: 'folder',
       label: 'Browse Files',
       description: 'iCloud, Google Drive, local storage',
-      color: colors.accent,
+      color: colors.text,
       onPress: onSelectFiles,
     },
   ];
@@ -111,7 +111,7 @@ export function CaptureSourceModal({
                 onPress={() => handleOptionPress(option)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.iconContainer, { backgroundColor: `${option.color}15` }]}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
                   <Ionicons name={option.icon} size={28} color={option.color} />
                 </View>
                 <View style={styles.optionContent}>

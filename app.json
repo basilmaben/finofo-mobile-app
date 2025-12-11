@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Finofo Documents",
+    "name": "Finofo",
     "slug": "finofo-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -44,14 +44,26 @@
         {
           "action": "android.intent.action.SEND",
           "category": ["android.intent.category.DEFAULT"],
-          "data": [{ "mimeType": "image/*" }, { "mimeType": "application/pdf" }]
+          "data": [
+            {
+              "mimeType": "image/*"
+            },
+            {
+              "mimeType": "application/pdf"
+            }
+          ]
         },
         {
           "action": "android.intent.action.SEND_MULTIPLE",
           "category": ["android.intent.category.DEFAULT"],
-          "data": [{ "mimeType": "image/*" }]
+          "data": [
+            {
+              "mimeType": "image/*"
+            }
+          ]
         }
-      ]
+      ],
+      "permissions": ["android.permission.CAMERA", "android.permission.RECORD_AUDIO"]
     },
     "web": {
       "output": "static",
@@ -88,11 +100,30 @@
         {
           "iCloudContainerEnvironment": "Production"
         }
+      ],
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsImageWithMaxCount": 10,
+            "NSExtensionActivationSupportsFileWithMaxCount": 10
+          },
+          "iosShareExtensionName": "Share to Finofo",
+          "androidIntentFilters": ["image/*", "application/pdf"],
+          "androidMultiIntentFilters": ["image/*"]
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "762c46da-cb2b-4c9b-8d48-bba6852afc1a"
+      }
+    },
+    "owner": "basilcliffordmaben"
   }
 }

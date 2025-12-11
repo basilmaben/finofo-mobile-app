@@ -1,6 +1,6 @@
 /**
  * Document Capture & Upload Screen
- * Main screen for capturing documents via camera, file picker, or share activity
+ * Main screen for capturing documents - supports mixing files from multiple sources
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -8,10 +8,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useFileBatch } from '@/store/file-batch-store';
 import type { DocumentFile } from '@/types/document';
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -19,6 +20,24 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9
 export default function CaptureScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+
+  // Use shared file batch store
+  const { files, addFiles, removeFile, clearFiles } = useFileBatch();
+
+  // Clear all files
+  const handleClearAll = () => {
+    Alert.alert('Clear All?', 'Remove all files from this batch?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          clearFiles();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
+  };
 
   // Handle opening camera
   const handleOpenCamera = () => {
@@ -39,19 +58,16 @@ export default function CaptureScreen() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const files: DocumentFile[] = result.assets.map((asset, index) => ({
+        const newFiles: DocumentFile[] = result.assets.map((asset, index) => ({
           id: generateId(),
           uri: asset.uri,
-          name: asset.fileName || `Photo_${index + 1}.jpg`,
+          name: asset.fileName || `Photo_${files.length + index + 1}.jpg`,
           type: asset.mimeType || 'image/jpeg',
           size: asset.fileSize || 0,
           createdAt: new Date(),
         }));
-
-        router.push({
-          pathname: '/upload-preview',
-          params: { files: JSON.stringify(files) },
-        });
+        addFiles(newFiles);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
       console.error('Gallery picker error:', error);
@@ -71,7 +87,7 @@ export default function CaptureScreen() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const files: DocumentFile[] = result.assets.map((asset) => ({
+        const newFiles: DocumentFile[] = result.assets.map((asset) => ({
           id: generateId(),
           uri: asset.uri,
           name: asset.name,
@@ -79,17 +95,35 @@ export default function CaptureScreen() {
           size: asset.size || 0,
           createdAt: new Date(),
         }));
-
-        router.push({
-          pathname: '/upload-preview',
-          params: { files: JSON.stringify(files) },
-        });
+        addFiles(newFiles);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
       console.error('File picker error:', error);
       Alert.alert('Error', 'Failed to access files.');
     }
   };
+
+  // Handle remove file
+  const handleRemoveFile = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    removeFile(id);
+  };
+
+  // Continue to upload preview
+  const handleContinue = () => {
+    if (files.length === 0) {
+      Alert.alert('No Files', 'Please add at least one file to continue.');
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push({
+      pathname: '/upload-preview',
+      params: { files: JSON.stringify(files) },
+    });
+  };
+
+  const hasFiles = files.length > 0;
 
   return (
     <SafeAreaView
@@ -98,132 +132,160 @@ export default function CaptureScreen() {
     >
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, hasFiles && styles.scrollContentWithFiles]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Upload Document</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Capture or select documents to upload
+            {hasFiles
+              ? `${files.length} file${files.length > 1 ? 's' : ''} ready • Add more or continue`
+              : 'Add files from any source to create a batch'}
           </Text>
         </View>
 
-        {/* Hero Card - Camera Capture */}
-        <TouchableOpacity
-          style={[styles.heroCard, { backgroundColor: colors.primary }, Shadows.md]}
-          onPress={handleOpenCamera}
-          activeOpacity={0.85}
-        >
-          <View style={styles.heroIconContainer}>
-            <Ionicons name="camera" size={48} color={colors.background} />
+        {/* Files Preview (when files exist) */}
+        {hasFiles && (
+          <View style={styles.filesSection}>
+            <View style={styles.filesSectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Your Batch</Text>
+              <TouchableOpacity onPress={handleClearAll}>
+                <Text style={[styles.clearButton, { color: colors.textMuted }]}>Clear all</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filesScroll}
+            >
+              {files.map((file) => (
+                <View key={file.id} style={styles.fileCardWrapper}>
+                  <View
+                    style={[
+                      styles.fileCard,
+                      { backgroundColor: colors.cardSecondary, borderColor: colors.border },
+                    ]}
+                  >
+                    {file.type.startsWith('image/') ? (
+                      <Image source={{ uri: file.uri }} style={styles.fileImage} />
+                    ) : (
+                      <View style={styles.fileIconContainer}>
+                        <Ionicons name="document-text" size={28} color={colors.text} />
+                        <Text style={[styles.fileTypeLabel, { color: colors.text }]}>PDF</Text>
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.removeButton, { backgroundColor: colors.text }]}
+                    onPress={() => handleRemoveFile(file.id)}
+                  >
+                    <Ionicons name="close" size={12} color={colors.background} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
           </View>
-          <View style={styles.heroContent}>
-            <Text style={[styles.heroTitle, { color: colors.background }]}>Scan Document</Text>
-            <Text style={[styles.heroDescription, { color: colors.background, opacity: 0.8 }]}>
-              Capture single or multi-page documents using your camera
-            </Text>
-          </View>
-          <View style={styles.heroArrow}>
-            <Ionicons
-              name="arrow-forward-circle"
-              size={32}
-              color={colors.background}
-              style={{ opacity: 0.6 }}
-            />
-          </View>
-        </TouchableOpacity>
+        )}
 
-        {/* Other Sources */}
+        {/* Add Sources */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Or choose from</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            {hasFiles ? 'Add More From' : 'Add From'}
+          </Text>
 
-          <View style={styles.sourcesList}>
-            {/* Photo Library */}
+          <View style={styles.sourceGrid}>
+            {/* Camera */}
             <TouchableOpacity
               style={[
-                styles.sourceOption,
+                styles.sourceCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={handleOpenCamera}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.sourceCardIcon, { backgroundColor: colors.cardSecondary }]}>
+                <Ionicons name="camera" size={28} color={colors.text} />
+              </View>
+              <Text style={[styles.sourceCardTitle, { color: colors.text }]}>Camera</Text>
+              <Text style={[styles.sourceCardSubtitle, { color: colors.textMuted }]}>
+                Scan docs
+              </Text>
+            </TouchableOpacity>
+
+            {/* Gallery */}
+            <TouchableOpacity
+              style={[
+                styles.sourceCard,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handlePickFromGallery}
               activeOpacity={0.7}
             >
-              <View style={[styles.sourceIconContainer, { backgroundColor: colors.cardSecondary }]}>
+              <View style={[styles.sourceCardIcon, { backgroundColor: colors.cardSecondary }]}>
                 <Ionicons name="images" size={28} color={colors.text} />
               </View>
-              <View style={styles.sourceContent}>
-                <Text style={[styles.sourceTitle, { color: colors.text }]}>Photo Library</Text>
-                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
-                  Select images from your photos
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+              <Text style={[styles.sourceCardTitle, { color: colors.text }]}>Gallery</Text>
+              <Text style={[styles.sourceCardSubtitle, { color: colors.textMuted }]}>Photos</Text>
             </TouchableOpacity>
 
             {/* Files */}
             <TouchableOpacity
               style={[
-                styles.sourceOption,
+                styles.sourceCard,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handlePickFromFiles}
               activeOpacity={0.7}
             >
-              <View style={[styles.sourceIconContainer, { backgroundColor: colors.cardSecondary }]}>
+              <View style={[styles.sourceCardIcon, { backgroundColor: colors.cardSecondary }]}>
                 <Ionicons name="folder-open" size={28} color={colors.text} />
               </View>
-              <View style={styles.sourceContent}>
-                <Text style={[styles.sourceTitle, { color: colors.text }]}>Files</Text>
-                <Text style={[styles.sourceDescription, { color: colors.textMuted }]}>
-                  Browse iCloud, Google Drive, or local storage
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+              <Text style={[styles.sourceCardTitle, { color: colors.text }]}>Files</Text>
+              <Text style={[styles.sourceCardSubtitle, { color: colors.textMuted }]}>
+                iCloud, etc
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Share Activity Info */}
-        <View style={styles.section}>
-          <View
-            style={[
-              styles.infoCard,
-              { backgroundColor: colors.cardSecondary, borderColor: colors.border },
-            ]}
-          >
-            <View style={[styles.infoIconContainer, { backgroundColor: colors.card }]}>
-              <Ionicons name="share-outline" size={24} color={colors.text} />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={[styles.infoTitle, { color: colors.text }]}>Share from Other Apps</Text>
-              <Text style={[styles.infoDescription, { color: colors.textMuted }]}>
-                Use the Share button in any app to send documents here
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* Supported Formats */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Supported Formats
-          </Text>
-          <View style={styles.formatsRow}>
-            <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
-              <Ionicons name="image" size={16} color={colors.text} />
-              <Text style={[styles.formatText, { color: colors.textSecondary }]}>JPG, PNG</Text>
-            </View>
-            <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
-              <Ionicons name="document-text" size={16} color={colors.text} />
-              <Text style={[styles.formatText, { color: colors.textSecondary }]}>PDF</Text>
-            </View>
-            <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
-              <Ionicons name="documents" size={16} color={colors.text} />
-              <Text style={[styles.formatText, { color: colors.textSecondary }]}>Multi-page</Text>
+        {!hasFiles && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              Supported Formats
+            </Text>
+            <View style={styles.formatsRow}>
+              <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
+                <Ionicons name="image" size={16} color={colors.text} />
+                <Text style={[styles.formatText, { color: colors.textSecondary }]}>JPG, PNG</Text>
+              </View>
+              <View style={[styles.formatBadge, { backgroundColor: colors.cardSecondary }]}>
+                <Ionicons name="document-text" size={16} color={colors.text} />
+                <Text style={[styles.formatText, { color: colors.textSecondary }]}>PDF</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
       </ScrollView>
+
+      {/* Continue Button (when files exist) */}
+      {hasFiles && (
+        <View style={[styles.bottomBar, { backgroundColor: colors.background }]}>
+          <TouchableOpacity
+            style={[styles.continueButton, { backgroundColor: colors.primary }, Shadows.glow]}
+            onPress={handleContinue}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.continueButtonText, { color: colors.background }]}>
+              Continue with {files.length} file{files.length > 1 ? 's' : ''}
+            </Text>
+            <View style={[styles.continueIconWrapper, { backgroundColor: colors.background }]}>
+              <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -239,47 +301,75 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xxl,
   },
+  scrollContentWithFiles: {
+    paddingBottom: 120,
+  },
   header: {
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
   },
   title: {
     ...Typography.h1,
-    marginBottom: Spacing.xs,
+    fontSize: 34,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.body,
+    lineHeight: 22,
   },
 
-  // Hero Card
-  heroCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
+  // Files Section
+  filesSection: {
     marginBottom: Spacing.xl,
   },
-  heroIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  filesSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  heroContent: {
-    flex: 1,
-  },
-  heroTitle: {
-    ...Typography.h3,
-    marginBottom: 4,
-  },
-  heroDescription: {
+  clearButton: {
     ...Typography.caption,
   },
-  heroArrow: {
-    marginLeft: Spacing.sm,
+  filesScroll: {
+    paddingRight: Spacing.lg,
+  },
+  fileCardWrapper: {
+    position: 'relative',
+    marginRight: Spacing.sm,
+    paddingTop: 8,
+    paddingRight: 8,
+  },
+  fileCard: {
+    width: 80,
+    height: 100,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  fileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fileIconContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fileTypeLabel: {
+    ...Typography.small,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Sections
@@ -287,84 +377,87 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    ...Typography.captionBold,
+    ...Typography.small,
+    fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     marginBottom: Spacing.md,
   },
 
-  // Source Options
-  sourcesList: {
-    gap: Spacing.sm,
-  },
-  sourceOption: {
+  // Source Grid
+  sourceGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    gap: Spacing.md,
   },
-  sourceIconContainer: {
+  sourceCard: {
+    flex: 1,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  sourceCardIcon: {
     width: 52,
     height: 52,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginBottom: Spacing.sm,
   },
-  sourceContent: {
-    flex: 1,
-  },
-  sourceTitle: {
-    ...Typography.bodyBold,
-    marginBottom: 2,
-  },
-  sourceDescription: {
-    ...Typography.caption,
-  },
-
-  // Info Card
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-  },
-  infoIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
+  sourceCardTitle: {
     ...Typography.captionBold,
     marginBottom: 2,
   },
-  infoDescription: {
+  sourceCardSubtitle: {
     ...Typography.small,
   },
 
   // Formats
   formatsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   formatBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    gap: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.full,
   },
   formatText: {
-    ...Typography.small,
+    ...Typography.caption,
     fontWeight: '500',
+  },
+
+  // Bottom Bar
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    borderTopWidth: 0,
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+  },
+  continueButtonText: {
+    ...Typography.bodyBold,
+  },
+  continueIconWrapper: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
