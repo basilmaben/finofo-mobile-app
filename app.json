@@ -1,98 +1,98 @@
 {
-    "expo": {
-        "name": "Finofo Documents",
-        "slug": "finofo-mobile-app",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "icon": "./assets/images/icon.png",
-        "scheme": "finofo",
-        "userInterfaceStyle": "automatic",
-        "newArchEnabled": true,
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.finofo.documents",
-            "infoPlist": {
-                "NSCameraUsageDescription": "This app uses the camera to scan and capture documents.",
-                "NSPhotoLibraryUsageDescription": "This app accesses your photos to upload documents.",
-                "CFBundleDocumentTypes": [
-                    {
-                        "CFBundleTypeName": "Images",
-                        "LSHandlerRank": "Alternate",
-                        "LSItemContentTypes": ["public.image", "public.jpeg", "public.png"]
-                    },
-                    {
-                        "CFBundleTypeName": "PDF",
-                        "LSHandlerRank": "Alternate",
-                        "LSItemContentTypes": ["com.adobe.pdf"]
-                    }
-                ],
-                "UIFileSharingEnabled": true,
-                "LSSupportsOpeningDocumentsInPlace": true
-            }
-        },
-        "android": {
-            "package": "com.finofo.documents",
-            "adaptiveIcon": {
-                "backgroundColor": "#FF6B5B",
-                "foregroundImage": "./assets/images/android-icon-foreground.png",
-                "backgroundImage": "./assets/images/android-icon-background.png",
-                "monochromeImage": "./assets/images/android-icon-monochrome.png"
-            },
-            "edgeToEdgeEnabled": true,
-            "predictiveBackGestureEnabled": false,
-            "intentFilters": [
-                {
-                    "action": "android.intent.action.SEND",
-                    "category": ["android.intent.category.DEFAULT"],
-                    "data": [{ "mimeType": "image/*" }, { "mimeType": "application/pdf" }]
-                },
-                {
-                    "action": "android.intent.action.SEND_MULTIPLE",
-                    "category": ["android.intent.category.DEFAULT"],
-                    "data": [{ "mimeType": "image/*" }]
-                }
-            ]
-        },
-        "web": {
-            "output": "static",
-            "favicon": "./assets/images/favicon.png"
-        },
-        "plugins": [
-            "expo-router",
-            [
-                "expo-splash-screen",
-                {
-                    "image": "./assets/images/splash-icon.png",
-                    "imageWidth": 200,
-                    "resizeMode": "contain",
-                    "backgroundColor": "#ffffff",
-                    "dark": {
-                        "backgroundColor": "#0A0F1C"
-                    }
-                }
-            ],
-            [
-                "expo-camera",
-                {
-                    "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan documents."
-                }
-            ],
-            [
-                "expo-image-picker",
-                {
-                    "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to upload documents."
-                }
-            ],
-            [
-                "expo-document-picker",
-                {
-                    "iCloudContainerEnvironment": "Production"
-                }
-            ]
+  "expo": {
+    "name": "Finofo Documents",
+    "slug": "finofo-mobile-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "finofo",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.finofo.documents",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan and capture documents.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to upload documents.",
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Images",
+            "LSHandlerRank": "Alternate",
+            "LSItemContentTypes": ["public.image", "public.jpeg", "public.png"]
+          },
+          {
+            "CFBundleTypeName": "PDF",
+            "LSHandlerRank": "Alternate",
+            "LSItemContentTypes": ["com.adobe.pdf"]
+          }
         ],
-        "experiments": {
-            "typedRoutes": true,
-            "reactCompiler": true
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
+      }
+    },
+    "android": {
+      "package": "com.finofo.documents",
+      "adaptiveIcon": {
+        "backgroundColor": "#FF6B5B",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "android.intent.action.SEND",
+          "category": ["android.intent.category.DEFAULT"],
+          "data": [{ "mimeType": "image/*" }, { "mimeType": "application/pdf" }]
+        },
+        {
+          "action": "android.intent.action.SEND_MULTIPLE",
+          "category": ["android.intent.category.DEFAULT"],
+          "data": [{ "mimeType": "image/*" }]
         }
+      ]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#0A0F1C"
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan documents."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to upload documents."
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
     }
+  }
 }
