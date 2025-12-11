@@ -23,7 +23,7 @@ export function BottomNav() {
   ] as const;
 
   return (
-    <View style={styles.bottomNav}>
+    <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
       {items.map((item) => {
         const isActive = pathname === item.route;
         const color = isActive ? theme.colors.primary : theme.colors.onSurfaceVariant;

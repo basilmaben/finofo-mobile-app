@@ -81,7 +81,7 @@ export function Dashboard() {
 
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <View style={styles.searchWrapper}>
@@ -145,8 +145,6 @@ export function Dashboard() {
             </TabScreen>
           </Tabs>
         </TabsProvider>
-
-
         <BottomNav />
         <UploadButton />
       </View>
