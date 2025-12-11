@@ -49,26 +49,28 @@ export function FileThumbnail({
 
   return (
     <View style={[styles.container, showDetails && styles.containerWithDetails]}>
-      <View
-        style={[
-          styles.thumbnail,
-          {
-            width: dimension,
-            height: dimension,
-            backgroundColor: colors.cardSecondary,
-            borderColor: colors.border,
-          },
-          Shadows.sm,
-        ]}
-      >
-        {isImage ? (
-          <Image source={{ uri: file.uri }} style={styles.image} resizeMode="cover" />
-        ) : (
-          <View style={styles.iconContainer}>
-            <Ionicons name={getFileIcon()} size={dimension * 0.4} color={colors.text} />
-            {isPdf && <Text style={[styles.pdfLabel, { color: colors.text }]}>PDF</Text>}
-          </View>
-        )}
+      <View style={styles.thumbnailWrapper}>
+        <View
+          style={[
+            styles.thumbnail,
+            {
+              width: dimension,
+              height: dimension,
+              backgroundColor: colors.cardSecondary,
+              borderColor: colors.border,
+            },
+            Shadows.sm,
+          ]}
+        >
+          {isImage ? (
+            <Image source={{ uri: file.uri }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={styles.iconContainer}>
+              <Ionicons name={getFileIcon()} size={dimension * 0.4} color={colors.text} />
+              {isPdf && <Text style={[styles.pdfLabel, { color: colors.text }]}>PDF</Text>}
+            </View>
+          )}
+        </View>
 
         {onRemove && (
           <TouchableOpacity
@@ -108,11 +110,14 @@ const styles = StyleSheet.create({
   containerWithDetails: {
     maxWidth: 140,
   },
+  thumbnailWrapper: {
+    position: 'relative',
+    padding: 8,
+  },
   thumbnail: {
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
     borderWidth: 1,
-    position: 'relative',
   },
   image: {
     width: '100%',
@@ -130,11 +135,11 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

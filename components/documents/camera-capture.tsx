@@ -146,7 +146,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
       {/* Overlay UI (absolutely positioned on top of camera) */}
       <View style={styles.overlay} pointerEvents="box-none">
         {/* Top Controls */}
-        <View style={[styles.topBar, { top: insets.top + 12 }]}>
+        <View style={[styles.topBar, { top: Math.max(insets.top, 20) + 16 }]}>
           <TouchableOpacity style={styles.iconButton} onPress={onClose}>
             <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
@@ -162,7 +162,10 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
         </View>
 
         {/* Document Frame Guide */}
-        <View style={[styles.frameGuide, { top: insets.top + 80 }]} pointerEvents="none">
+        <View
+          style={[styles.frameGuide, { top: Math.max(insets.top, 20) + 80 }]}
+          pointerEvents="none"
+        >
           <View style={styles.frameContainer}>
             <View style={[styles.corner, styles.topLeftCorner]} />
             <View style={[styles.corner, styles.topRightCorner]} />
