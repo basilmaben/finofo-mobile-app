@@ -32,10 +32,9 @@ export default function SignInScreen() {
 
 			if (result.status === "complete") {
 				await setActive({ session: result.createdSessionId });
-				router.replace("/"); // go to dashboard
+				router.replace("/");
 			} else {
-				// Could handle more steps here (MFA, etc.)
-				console.log("Sign-in not complete:", JSON.stringify(result, null, 2));
+				console.warn("Sign-in not complete:", JSON.stringify(result, null, 2));
 			}
 		} catch (err: unknown) {
 			console.error("Sign in error", JSON.stringify(err, null, 2));
@@ -81,9 +80,6 @@ export default function SignInScreen() {
 					<Text style={styles.buttonText}>Continue</Text>
 				)}
 			</TouchableOpacity>
-
-			{/* Optional: link to sign-up route when you add it */}
-			{/* <Text style={styles.helperText}>Don't have an account yet?</Text> */}
 		</View>
 	);
 }
