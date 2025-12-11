@@ -37,12 +37,21 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
   const [flash, setFlash] = useState<FlashMode>('off');
   const [capturedImages, setCapturedImages] = useState<DocumentFile[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showHint, setShowHint] = useState(true);
 
   useEffect(() => {
     if (!permission?.granted) {
       requestPermission();
     }
   }, [permission, requestPermission]);
+
+  // Hide hint after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowHint(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleCapture = async () => {
     if (!cameraRef.current || isCapturing) return;
@@ -172,8 +181,14 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
             <View style={[styles.corner, styles.bottomLeftCorner]} />
             <View style={[styles.corner, styles.bottomRightCorner]} />
           </View>
-          <Text style={styles.frameHint}>Align document within frame</Text>
         </View>
+
+        {/* Centered Hint (auto-hides after 3s) */}
+        {showHint && (
+          <View style={styles.hintContainer} pointerEvents="none">
+            <Text style={styles.hintText}>Align document within frame</Text>
+          </View>
+        )}
 
         {/* Captured Pages Preview (Multi-page mode) */}
         {multiPage && capturedImages.length > 0 && (
@@ -386,10 +401,22 @@ const styles = StyleSheet.create({
     borderRightWidth: 3,
     borderBottomRightRadius: 12,
   },
-  frameHint: {
-    ...Typography.caption,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: Spacing.md,
+  // Centered Hint
+  hintContainer: {
+    position: 'absolute',
+    top: '45%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  hintText: {
+    ...Typography.body,
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
   },
 
   // Preview Section
