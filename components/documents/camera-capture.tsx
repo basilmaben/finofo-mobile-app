@@ -14,6 +14,7 @@ import {
     ScrollView,
     Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -29,6 +30,7 @@ interface CameraCaptureProps {
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCaptureProps) {
+    const insets = useSafeAreaInsets();
     const cameraRef = useRef<CameraView>(null);
     const [permission, requestPermission] = useCameraPermissions();
     const [facing, setFacing] = useState<CameraType>('back');
@@ -142,7 +144,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
         <View style={styles.container}>
             <CameraView ref={cameraRef} style={styles.camera} facing={facing} flash={flash}>
                 {/* Top Controls */}
-                <View style={styles.topBar}>
+                <View style={[styles.topBar, { top: insets.top + 12 }]}>
                     <TouchableOpacity style={styles.iconButton} onPress={onClose}>
                         <Ionicons name="close" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
@@ -162,7 +164,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                 </View>
 
                 {/* Document Frame Guide */}
-                <View style={styles.frameGuide}>
+                <View style={[styles.frameGuide, { top: insets.top + 80 }]}>
                     <View style={styles.frameContainer}>
                         <View style={[styles.corner, styles.topLeftCorner]} />
                         <View style={[styles.corner, styles.topRightCorner]} />
@@ -309,7 +311,6 @@ const styles = StyleSheet.create({
     // Top Bar
     topBar: {
         position: 'absolute',
-        top: 60,
         left: 0,
         right: 0,
         flexDirection: 'row',
@@ -334,7 +335,6 @@ const styles = StyleSheet.create({
     // Frame Guide
     frameGuide: {
         position: 'absolute',
-        top: 140,
         left: 24,
         right: 24,
         bottom: 280,
