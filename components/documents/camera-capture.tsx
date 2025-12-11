@@ -142,7 +142,11 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
 
     return (
         <View style={styles.container}>
-            <CameraView ref={cameraRef} style={styles.camera} facing={facing} flash={flash}>
+            {/* Camera (no children allowed) */}
+            <CameraView ref={cameraRef} style={styles.camera} facing={facing} flash={flash} />
+
+            {/* Overlay UI (absolutely positioned on top of camera) */}
+            <View style={styles.overlay} pointerEvents="box-none">
                 {/* Top Controls */}
                 <View style={[styles.topBar, { top: insets.top + 12 }]}>
                     <TouchableOpacity style={styles.iconButton} onPress={onClose}>
@@ -164,7 +168,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                 </View>
 
                 {/* Document Frame Guide */}
-                <View style={[styles.frameGuide, { top: insets.top + 80 }]}>
+                <View style={[styles.frameGuide, { top: insets.top + 80 }]} pointerEvents="none">
                     <View style={styles.frameContainer}>
                         <View style={[styles.corner, styles.topLeftCorner]} />
                         <View style={[styles.corner, styles.topRightCorner]} />
@@ -201,7 +205,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                 )}
 
                 {/* Bottom Controls */}
-                <View style={styles.bottomBar}>
+                <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
                     {/* Page Counter */}
                     {multiPage && (
                         <View style={styles.pageCounter}>
@@ -254,7 +258,7 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
                             : 'Tap to capture document'}
                     </Text>
                 </View>
-            </CameraView>
+            </View>
         </View>
     );
 }
@@ -266,6 +270,9 @@ const styles = StyleSheet.create({
     },
     camera: {
         flex: 1,
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
     },
     permissionContainer: {
         flex: 1,
@@ -441,7 +448,6 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        paddingBottom: 50,
         paddingTop: Spacing.lg,
         backgroundColor: 'rgba(0,0,0,0.5)',
         alignItems: 'center',
