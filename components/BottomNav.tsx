@@ -17,16 +17,15 @@ export function BottomNav() {
   const router = useRouter();
 
   const items = [
-    { key: 'home', label: 'Dashboard', icon: 'view-dashboard-outline', route: '/' },
-    { key: 'purchase-orders', label: 'Purchase Orders', icon: 'clipboard-text-outline', route: '/modules/purchase-orders/table' },
-    { key: 'files', label: 'Files', icon: 'file-document-outline', route: '/files' },
+    { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/' },
   ] as const;
 
   return (
     <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
       {items.map((item) => {
-        const isActive = pathname === item.route;
+        const isActive = pathname === item.route || (item.key === 'home' && pathname === '/');
         const color = isActive ? theme.colors.primary : theme.colors.onSurfaceVariant;
+        const icon = isActive ? item.activeIcon : item.icon;
 
         return (
           <TouchableRipple
@@ -41,7 +40,7 @@ export function BottomNav() {
           >
             <View style={styles.bottomNavInner}>
               <IconButton
-                icon={item.icon}
+                icon={icon}
                 size={22}
                 iconColor={color}
                 style={styles.bottomNavIconButton}

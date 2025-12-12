@@ -1,16 +1,19 @@
 import { BottomNav } from '@/components/BottomNav';
 import { UploadButton } from '@/components/UploadButton';
 import { UserAvatar } from '@/components/UserAvatar';
-import { Stack } from 'expo-router';
+import { useFileBatch } from '@/store/file-batch-store';
+import { router, Stack } from 'expo-router';
 import * as React from 'react';
 import {
   FlatList,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {
   IconButton,
   List,
+  ProgressBar,
   Searchbar,
   Text,
   useTheme
@@ -68,9 +71,16 @@ const MOCK_FILES: DashboardFile[] = [
   },
 ];
 
-export function Dashboard() {
+export default function Dashboard() {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = React.useState('');
+  const { files, uploadState, cancelUpload } = useFileBatch();
+  
+  // Show different banners based on state
+  const hasPendingFiles = files.length > 0 && uploadState.status === 'idle';
+  const isUploading = uploadState.status === 'uploading';
+  const uploadCompleted = uploadState.status === 'completed';
+  const uploadError = uploadState.status === 'error';
 
   const filteredFiles = React.useMemo(() => {
     if (!searchQuery.trim()) return MOCK_FILES;
@@ -78,7 +88,40 @@ export function Dashboard() {
     return MOCK_FILES.filter((file) => file.name.toLowerCase().includes(q));
   }, [searchQuery]);
 
+  const getBannerText = () => {
+    if (isUploading) {
+      return {
+        title: `Uploading ${uploadState.totalFiles || files.length} file${(uploadState.totalFiles || files.length) !== 1 ? 's' : ''}...`,
+        subtitle: `${uploadState.progress}% complete`,
+      };
+    }
+    if (uploadCompleted) {
+      return {
+        title: 'Upload complete!',
+        subtitle: 'All files uploaded successfully',
+      };
+    }
+    if (uploadError) {
+      return {
+        title: 'Upload failed',
+        subtitle: uploadState.error || 'Something went wrong',
+      };
+    }
+    return {
+      title: `${files.length} file${files.length !== 1 ? 's' : ''} ready to upload`,
+      subtitle: 'Tap to review and upload',
+    };
+  };
 
+  const handleBannerPress = () => {
+    if (isUploading || uploadCompleted) {
+      // Could open a details modal, for now just do nothing
+      return;
+    }
+    router.push('/modules/upload-preview');
+  };
+
+  const showBanner = hasPendingFiles || isUploading || uploadCompleted || uploadError;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
@@ -145,6 +188,80 @@ export function Dashboard() {
             </TabScreen>
           </Tabs>
         </TabsProvider>
+
+        {/* Upload Status Banner */}
+        {showBanner && (
+          <TouchableOpacity 
+            style={[
+              styles.uploadBanner, 
+              { 
+                backgroundColor: uploadError 
+                  ? theme.colors.errorContainer 
+                  : uploadCompleted 
+                    ? theme.colors.primaryContainer 
+                    : theme.colors.surfaceVariant 
+              }
+            ]}
+            onPress={handleBannerPress}
+            activeOpacity={isUploading ? 1 : 0.8}
+          >
+            <View style={styles.uploadBannerContent}>
+              <View style={styles.uploadBannerText}>
+                <Text 
+                  variant="bodyMedium" 
+                  style={{ 
+                    color: uploadError 
+                      ? theme.colors.onErrorContainer 
+                      : uploadCompleted 
+                        ? theme.colors.onPrimaryContainer 
+                        : theme.colors.onSurface 
+                  }}
+                >
+                  {getBannerText().title}
+                </Text>
+                <Text 
+                  variant="bodySmall" 
+                  style={{ 
+                    color: uploadError 
+                      ? theme.colors.onErrorContainer 
+                      : uploadCompleted 
+                        ? theme.colors.onPrimaryContainer 
+                        : theme.colors.onSurfaceVariant 
+                  }}
+                >
+                  {getBannerText().subtitle}
+                </Text>
+              </View>
+              {isUploading ? (
+                <IconButton 
+                  icon="close" 
+                  size={20} 
+                  iconColor={theme.colors.onSurfaceVariant}
+                  onPress={cancelUpload}
+                />
+              ) : (
+                <IconButton 
+                  icon={hasPendingFiles ? "chevron-up" : uploadCompleted ? "check" : "alert-circle"} 
+                  size={20} 
+                  iconColor={
+                    uploadError 
+                      ? theme.colors.onErrorContainer 
+                      : uploadCompleted 
+                        ? theme.colors.onPrimaryContainer 
+                        : theme.colors.onSurfaceVariant
+                  }
+                />
+              )}
+            </View>
+            {isUploading && (
+              <ProgressBar 
+                progress={uploadState.progress / 100} 
+                color={theme.colors.primary}
+                style={styles.uploadProgressBar}
+              />
+            )}
+          </TouchableOpacity>
+        )}
         <BottomNav />
         <UploadButton />
       </View>
@@ -195,5 +312,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
+  uploadBanner: {
+    position: 'absolute',
+    bottom: 64, // above bottom nav
+    left: 0,
+    right: 0,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  uploadBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  uploadBannerText: {
+    flex: 1,
+  },
+  uploadProgressBar: {
+    marginTop: 8,
+    marginBottom: 12,
+    height: 3,
+    borderRadius: 2,
+  },
 });

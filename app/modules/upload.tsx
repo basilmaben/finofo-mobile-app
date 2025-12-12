@@ -10,8 +10,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BottomNav } from '@/components/BottomNav';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { useFileBatch } from '@/store/file-batch-store';
 import type { DocumentFile } from '@/types/document';
 
@@ -42,7 +43,7 @@ export default function CaptureScreen() {
   // Handle opening camera
   const handleOpenCamera = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/capture');
+    router.push('/modules/capture');
   };
 
   // Handle picking from photo library
@@ -118,7 +119,7 @@ export default function CaptureScreen() {
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push({
-      pathname: '/upload-preview',
+      pathname: '/modules/upload-preview',
       params: { files: JSON.stringify(files) },
     });
   };
@@ -286,6 +287,9 @@ export default function CaptureScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </SafeAreaView>
   );
 }
@@ -299,10 +303,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: 100,
   },
   scrollContentWithFiles: {
-    paddingBottom: 120,
+    paddingBottom: 180,
   },
   header: {
     paddingTop: Spacing.xl,
@@ -434,11 +438,11 @@ const styles = StyleSheet.create({
   // Bottom Bar
   bottomBar: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 64,
     left: 0,
     right: 0,
     padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.md,
     borderTopWidth: 0,
   },
   continueButton: {

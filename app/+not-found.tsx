@@ -7,7 +7,7 @@ import { Redirect, usePathname } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function NotFoundScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -24,14 +24,14 @@ export default function NotFoundScreen() {
 
   if (isShareIntentLink) {
     // This is a share intent - redirect to home, the ShareIntentProvider will handle the data
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href="/" />;
   }
 
   // For any other unmatched route, redirect to home
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ActivityIndicator size="large" color={colors.primary} />
-      <Redirect href="/(tabs)" />
+      <Redirect href="/" />
     </View>
   );
 }
@@ -43,3 +43,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+

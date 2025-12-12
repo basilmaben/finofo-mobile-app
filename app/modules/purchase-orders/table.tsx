@@ -11,7 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BottomNav } from "@/components/BottomNav";
+import { UploadButton } from "@/components/UploadButton";
 import {
   GetPurchaseOrderTableDocument,
   type GetPurchaseOrderTableQuery,
@@ -85,15 +88,20 @@ export default function PurchaseOrderTableScreen() {
 
   if (loading && !data) {
     return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.centered}>
         <ActivityIndicator />
         <Text style={styles.muted}>Loading purchase orders…</Text>
       </View>
+        <BottomNav />
+        <UploadButton />
+      </SafeAreaView>
     );
   }
 
   if (error && !data) {
     return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.centered}>
         <Text style={styles.error}>Failed to load purchase orders.</Text>
         <Text style={styles.muted}>{String(error.message)}</Text>
@@ -111,16 +119,18 @@ export default function PurchaseOrderTableScreen() {
           <Text style={styles.buttonSecondaryText}>Back to Dashboard</Text>
         </TouchableOpacity>
       </View>
+        <BottomNav />
+        <UploadButton />
+      </SafeAreaView>
     );
   }
 
   return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
     <View style={styles.container}>
-      {/* Header with Back button */}
+        {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Dashboard</Text>
-        </TouchableOpacity>
+          <View style={{ width: 80 }} />
         <Text style={styles.headerTitle}>Purchase Orders</Text>
         <View style={{ width: 80 }} />
       </View>
@@ -148,10 +158,17 @@ export default function PurchaseOrderTableScreen() {
         }
       />
     </View>
+      <BottomNav />
+      <UploadButton />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#020617",
+  },
   container: {
     flex: 1,
     backgroundColor: "#020617",
@@ -164,7 +181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   header: {
-    paddingTop: 48,
+    paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 12,
     flexDirection: "row",
@@ -173,10 +190,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#1F2937",
   },
-  backText: {
-    color: "#93C5FD",
-    fontSize: 14,
-  },
   headerTitle: {
     color: "#F9FAFB",
     fontSize: 18,
@@ -184,7 +197,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 120, // space for bottom nav & FAB
   },
   row: {
     backgroundColor: "#020617",
