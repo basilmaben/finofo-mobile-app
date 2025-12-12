@@ -23,7 +23,7 @@ const dateOptions = {
   hour12: false
 } as const;
 
-const formatDate = (date: number) => new Date(date).toLocaleString('en-CA', dateOptions);
+export const formatDate = (date: number) => new Date(date).toLocaleString('en-CA', dateOptions);
 
 type DocumentTableProps = {
   edges?: ReadonlyArray<{cursor: string, node: {id: string; createdAt: number; documentUrl: string | null}}>;

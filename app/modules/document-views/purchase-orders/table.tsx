@@ -35,8 +35,12 @@ export const PurchaseOrderTable: React.FC<{searchQuery?: string}> = ({searchQuer
     const {documentUrl, purchaseOrderNumber} = node as PurchaseOrderDocument;
     return titleFormatter('Purchase Order',documentUrl, purchaseOrderNumber)
   };
-  const onPress = () => {
-    router.push('/modules/document-views/purchase-orders/details');
+  const onPress = (node: unknown) => {
+    const { id } = node as PurchaseOrderDocument;
+    router.push({
+      pathname: '/modules/document-views/purchase-orders/[id]',
+      params: { id }
+    });
   }
   return (
     <DocumentTable

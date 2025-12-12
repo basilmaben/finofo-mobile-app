@@ -26,16 +26,18 @@ import Animated, {
   interpolateColor,
   Extrapolation,
 } from "react-native-reanimated";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Tabs,
   TabScreen,
   TabsProvider,
   useTabIndex,
 } from "react-native-paper-tabs";
-import { getFileExtension, getFileIcon } from "../common/filename";
+import { getFileExtension, getFileIcon, getFilename } from "../common/filename";
 import Pdf from "react-native-pdf";
 import WebView from 'react-native-webview';
+import { usePurchaseOrderDetails } from "./data/usePurchaseOrderDetails";
+import { formatDate } from "../common/table";
 
 const { width } = Dimensions.get("window");
 
@@ -51,12 +53,26 @@ const TEST_PDF = "https://po-hub-documents-dev1.s3.amazonaws.com/711e811b-0062-4
 // const TEST_PDF = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 // const TEST_PDF = "http://samples.leanpub.com/thereactnativebook-sample.pdf"
 
+const formatCurrency = (amount: number, currency: string = 'USD') => {
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    currencyDisplay: 'narrowSymbol'
+  }).format(amount);
+
+  return formatted;
+};
+
 export default function DocumentScreen() {
   const theme = useTheme();
   const router = useRouter();
 
   const scrollY = useSharedValue(0);
   const scrollRef = React.useRef<ScrollView | null>(null);
+
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const { data, loading } = usePurchaseOrderDetails({ id });
 
   // Animated scroll handler for reanimated
   const scrollHandler = useAnimatedScrollHandler({
@@ -123,18 +139,12 @@ export default function DocumentScreen() {
     []
   );
 
-  // Temporary stub data
-  const fileUrl =
-    "https://example.com/documents/Purchase_Order_PO_1232.pdf";
-  const amount = "$1,500.00 CAD";
-  const fileName = "Purchase Order - PO_1232.pdf";
-
   return (
     <TabsProvider defaultIndex={0}>
       <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
         <Appbar.Header mode="center-aligned">
           <Appbar.BackAction onPress={() => router.back()} />
-          <Appbar.Content title={fileName} />
+          <Appbar.Content title={data?.purchaseOrder?.purchaseOrderNumber} />
         </Appbar.Header>
 
         <AnimatedScrollView
@@ -163,7 +173,7 @@ export default function DocumentScreen() {
             style={[styles.headerSurface, {backgroundColor: theme.colors.background}]}
             elevation={1}
           >
-            <DocumentHeader fileUrl={fileUrl} fileName={fileName} amount={amount} />
+            <DocumentHeader fileName={getFilename(data?.purchaseOrder?.documentUrl)} amount={data?.purchaseOrder?.totalAmount + ''} />
             <Tabs
               uppercase={false}
               showTextLabel
@@ -189,18 +199,18 @@ export default function DocumentScreen() {
  * Sticky header: icon + filename + amount
  */
 type DocumentHeaderProps = {
-  fileUrl: string;
   fileName: string;
-  amount: string;
+  amount?: string | null;
+  currency?: string | null;
 };
 
 const DocumentHeader: React.FC<DocumentHeaderProps> = ({
-  fileUrl,
   fileName,
   amount,
+  currency,
 }) => {
   const theme = useTheme();
-  const icon = getFileIcon(fileUrl);
+  const icon = getFileIcon(fileName);
 
   return (
     <View style={[styles.headerContent, {backgroundColor: theme.colors.background}]}>
@@ -222,7 +232,7 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({
             variant="bodyMedium"
             style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}
           >
-            {amount}
+            {formatCurrency(parseInt(amount || '0', 10), currency || 'USD')}
           </Text>
         </View>
       </View>
@@ -253,11 +263,14 @@ const TabContent: React.FC = () => {
 const DocumentDetailsCard: React.FC = () => {
   const theme = useTheme();
 
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data, loading } = usePurchaseOrderDetails({ id });
+
   const rows = [
-    { label: "Doc type", value: "Purchase Order" },
-    { label: "Vendor", value: "Staples" },
-    { label: "Status", value: "In-Progress" },
-    { label: "Date added", value: "Oct 8, 2025, 5:06:30 PM" },
+    { label: "Doc type", value: data?.purchaseOrder?.type },
+    { label: "Vendor", value: data?.purchaseOrder?.vendor?.name || data?.purchaseOrder?.vendorName },
+    { label: "Status", value: data?.purchaseOrder?.status },
+    { label: "Date added", value: formatDate(data?.purchaseOrder?.createdAt || 0)},
     { label: "Uploader", value: "Charles Maranda" },
     { label: "Approver", value: "Jane Doe" },
     { label: "Cost center", value: "Marketing" },
