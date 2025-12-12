@@ -5,6 +5,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { type CameraType, CameraView, type FlashMode, useCameraPermissions } from 'expo-camera';
+import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
@@ -67,12 +68,23 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
       });
 
       if (photo) {
+        // Get actual file size
+        let fileSize = 100000; // Default 100KB
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(photo.uri);
+          if (fileInfo.exists && fileInfo.size !== undefined) {
+            fileSize = fileInfo.size;
+          }
+        } catch {
+          // Use default size
+        }
+
         const newFile: DocumentFile = {
           id: generateId(),
           uri: photo.uri,
           name: `Document_Page_${capturedImages.length + 1}.jpg`,
           type: 'image/jpeg',
-          size: 0,
+          size: fileSize,
           createdAt: new Date(),
         };
 
@@ -85,7 +97,6 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
         }
       }
     } catch (error) {
-      console.error('Camera capture error:', error);
       Alert.alert('Capture Failed', 'Failed to capture image. Please try again.');
     } finally {
       setIsCapturing(false);
@@ -116,6 +127,14 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
     setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
   };
 
+  // Supported image types (no HEIC!)
+  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+  
+  const isSupportedImageType = (mimeType: string | null | undefined): boolean => {
+    if (!mimeType) return false;
+    return SUPPORTED_IMAGE_TYPES.includes(mimeType.toLowerCase());
+  };
+
   const pickFromGallery = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
@@ -127,20 +146,60 @@ export function CameraCapture({ onCapture, onClose, multiPage = true }: CameraCa
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const newFiles: DocumentFile[] = result.assets.map((asset, index) => ({
-          id: generateId(),
-          uri: asset.uri,
-          name: asset.fileName || `Photo_${capturedImages.length + index + 1}.jpg`,
-          type: asset.mimeType || 'image/jpeg',
-          size: asset.fileSize || 0,
-          createdAt: new Date(),
-        }));
+        // Filter out unsupported types (like HEIC)
+        const supportedAssets = result.assets.filter(asset => isSupportedImageType(asset.mimeType));
+        const skippedCount = result.assets.length - supportedAssets.length;
+        
+        if (skippedCount > 0) {
+          Alert.alert(
+            'Unsupported Format',
+            `${skippedCount} file(s) were skipped. Only JPEG and PNG images are supported.`
+          );
+        }
+        
+        if (supportedAssets.length === 0) {
+          return;
+        }
+        
+        // Get file sizes for each asset
+        const newFiles: DocumentFile[] = await Promise.all(
+          supportedAssets.map(async (asset, index) => {
+            let fileSize = asset.fileSize || 0;
+            
+            // If fileSize is 0, try to get it from FileSystem
+            if (fileSize === 0) {
+              try {
+                const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+                if (fileInfo.exists && fileInfo.size !== undefined) {
+                  fileSize = fileInfo.size;
+                }
+              } catch {
+                // Ignore - will use estimate below
+              }
+            }
+            
+            // Ensure we always have a valid file size (API requires >= 1)
+            if (fileSize === 0) {
+              const width = asset.width || 1000;
+              const height = asset.height || 1000;
+              fileSize = Math.max(width * height * 0.75, 50000);
+            }
+            
+            return {
+              id: generateId(),
+              uri: asset.uri,
+              name: asset.fileName || `Photo_${capturedImages.length + index + 1}.jpg`,
+              type: asset.mimeType || 'image/jpeg',
+              size: Math.round(fileSize),
+              createdAt: new Date(),
+            };
+          })
+        );
 
         setCapturedImages((prev) => [...prev, ...newFiles]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      console.error('Gallery picker error:', error);
       Alert.alert('Error', 'Failed to access photo library.');
     }
   };

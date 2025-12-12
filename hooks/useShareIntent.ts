@@ -78,7 +78,7 @@ export function useHandleShareIntent() {
         addFiles(newFiles);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         // Navigate directly to upload preview
-        router.push('/upload-preview');
+        router.push('/modules/upload-preview');
       }
 
       // Reset the share intent after processing
