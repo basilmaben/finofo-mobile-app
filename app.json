@@ -18,24 +18,30 @@
           {
             "CFBundleTypeName": "Images",
             "LSHandlerRank": "Alternate",
-            "LSItemContentTypes": ["public.image", "public.jpeg", "public.png"]
+            "LSItemContentTypes": [
+              "public.image",
+              "public.jpeg",
+              "public.png"
+            ]
           },
           {
             "CFBundleTypeName": "PDF",
             "LSHandlerRank": "Alternate",
-            "LSItemContentTypes": ["com.adobe.pdf"]
+            "LSItemContentTypes": [
+              "com.adobe.pdf"
+            ]
           }
         ],
         "UIFileSharingEnabled": true,
-        "LSSupportsOpeningDocumentsInPlace": true
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.finofo.documents",
       "adaptiveIcon": {
-        "backgroundColor": "#FF6B5B",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -43,7 +49,9 @@
       "intentFilters": [
         {
           "action": "android.intent.action.SEND",
-          "category": ["android.intent.category.DEFAULT"],
+          "category": [
+            "android.intent.category.DEFAULT"
+          ],
           "data": [
             {
               "mimeType": "image/*"
@@ -55,7 +63,9 @@
         },
         {
           "action": "android.intent.action.SEND_MULTIPLE",
-          "category": ["android.intent.category.DEFAULT"],
+          "category": [
+            "android.intent.category.DEFAULT"
+          ],
           "data": [
             {
               "mimeType": "image/*"
@@ -63,7 +73,10 @@
           ]
         }
       ],
-      "permissions": ["android.permission.CAMERA", "android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -77,11 +90,12 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#FFFFFF",
           "dark": {
-            "backgroundColor": "#0A0F1C"
+            "backgroundColor": "#1D1D20",
+            "image": "./assets/images/splash-icon.png"
           }
         }
       ],
@@ -111,8 +125,13 @@
             "NSExtensionActivationSupportsFileWithMaxCount": 10
           },
           "iosShareExtensionName": "Share to Finofo",
-          "androidIntentFilters": ["image/*", "application/pdf"],
-          "androidMultiIntentFilters": ["image/*"]
+          "androidIntentFilters": [
+            "image/*",
+            "application/pdf"
+          ],
+          "androidMultiIntentFilters": [
+            "image/*"
+          ]
         }
       ]
     ],

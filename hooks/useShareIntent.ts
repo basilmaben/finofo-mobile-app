@@ -4,7 +4,7 @@
  */
 
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, usePathname, useRootNavigationState } from 'expo-router';
 import { useShareIntent } from 'expo-share-intent';
 import { useEffect, useRef } from 'react';
 import { useFileBatch } from '@/store/file-batch-store';
@@ -12,12 +12,25 @@ import type { DocumentFile } from '@/types/document';
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// Check if pathname is a share intent deep link route (not a valid app route)
+const isShareIntentRoute = (path: string | null) => {
+  if (!path) return false;
+  return path.includes('dataUrl') || path.includes('ShareKey');
+};
+
 export function useHandleShareIntent() {
   const { shareIntent, resetShareIntent, hasShareIntent } = useShareIntent();
   const { addFiles } = useFileBatch();
   const processedIntentRef = useRef<string | null>(null);
+  const pathname = usePathname();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
+    // Wait for navigation to be ready before processing
+    if (!navigationState?.key) {
+      return;
+    }
+
     if (!hasShareIntent || !shareIntent) {
       return;
     }
@@ -27,9 +40,20 @@ export function useHandleShareIntent() {
     if (processedIntentRef.current === intentKey) {
       return;
     }
+
+    // If we're on a share intent route, wait for NotFound to handle navigation
+    // The effect will re-run once the pathname changes
+    if (isShareIntentRoute(pathname)) {
+      console.log('[ShareIntent] On share intent route, waiting for redirect...');
+      return;
+    }
+
+    // Mark as processed BEFORE processing to prevent race conditions
     processedIntentRef.current = intentKey;
 
-    const processSharedContent = async () => {
+    console.log('[ShareIntent] Processing share intent on route:', pathname);
+
+    const processSharedContent = () => {
       const newFiles: DocumentFile[] = [];
 
       // Handle shared files (images, PDFs)
@@ -77,17 +101,30 @@ export function useHandleShareIntent() {
       if (newFiles.length > 0) {
         addFiles(newFiles);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        // Navigate directly to upload preview
-        router.push('/upload-preview');
+        
+        // Check if we're already on the upload-preview screen
+        const isOnUploadPreview = pathname === '/modules/upload-preview';
+        
+        if (isOnUploadPreview) {
+          // Already on upload-preview - just added files, no navigation needed
+          console.log('[ShareIntent] Already on upload-preview, files added');
+        } else {
+          // Not on upload-preview - navigate to it
+          console.log('[ShareIntent] Navigating to upload-preview from:', pathname);
+          // Small delay to ensure state is settled
+          setTimeout(() => {
+            router.push('/modules/upload-preview');
+          }, 100);
+        }
       }
 
       // Reset the share intent after processing
       resetShareIntent();
     };
 
-    // Small delay to ensure the app is fully mounted and redirect has completed
-    setTimeout(processSharedContent, 500);
-  }, [hasShareIntent, shareIntent, addFiles, resetShareIntent]);
+    // Process immediately - we've already verified we're on a valid route
+    processSharedContent();
+  }, [hasShareIntent, shareIntent, addFiles, resetShareIntent, pathname, navigationState?.key]);
 
   return {
     hasSharedContent: hasShareIntent,

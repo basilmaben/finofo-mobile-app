@@ -35,7 +35,6 @@ import {
 } from "react-native-paper-tabs";
 import { getFileExtension, getFileIcon, getFilename } from "../common/filename";
 import Pdf from "react-native-pdf";
-import WebView from 'react-native-webview';
 import { usePurchaseOrderDetails } from "./data/usePurchaseOrderDetails";
 import { formatDate } from "../common/table";
 
@@ -376,10 +375,6 @@ const CommentsPlaceholder: React.FC = () => {
   );
 };
 
-/**
- * Simple preview component. For JPGs we use <Card.Cover>; for PDFs
- * you can use WebView or react-native-pdf – here we just show a stub.
- */
 const DocumentPreview: React.FC<{ url: string }> = ({ url }) => {
   const ext = getFileExtension(url);
 

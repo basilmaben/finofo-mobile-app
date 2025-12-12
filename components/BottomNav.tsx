@@ -19,14 +19,15 @@ export function BottomNav() {
   const items = [
     { key: 'home', label: 'Dashboard', icon: 'view-dashboard-outline', route: '/' },
     { key: 'docs', label: 'Documents', icon: 'clipboard-text-outline', route: '/modules/document-views/document-list' },
-    { key: 'files', label: 'Files', icon: 'file-document-outline', route: '/files' },
   ] as const;
 
   return (
     <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
       {items.map((item) => {
-        const isActive = pathname === item.route;
+        const isActive = pathname === item.route || (item.key === 'home' && pathname === '/');
         const color = isActive ? theme.colors.primary : theme.colors.onSurfaceVariant;
+        // const icon = isActive ? item.activeIcon : item.icon;
+        const {icon} = item;
 
         return (
           <TouchableRipple
@@ -41,7 +42,7 @@ export function BottomNav() {
           >
             <View style={styles.bottomNavInner}>
               <IconButton
-                icon={item.icon}
+                icon={icon}
                 size={22}
                 iconColor={color}
                 style={styles.bottomNavIconButton}
