@@ -9,6 +9,7 @@ import { apolloClient } from "@/graphql/apolloClient";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { NetworkProvider } from "@/hooks/useNetworkStatus";
 import { useHandleShareIntent } from "@/hooks/useShareIntent";
+import { UploadSheetProvider } from "@/hooks/useUploadSheet";
 import { ActivityProvider } from "@/store/activity-store";
 import { FileBatchProvider } from "@/store/file-batch-store";
 import { ApolloProvider } from "@apollo/client/react";
@@ -27,7 +28,6 @@ import { CLERK_PUBLISHABLE_KEY } from "../config/env";
 function AppContent() {
   // Handle files shared from other apps
   useHandleShareIntent();
-
 
   return (
     <>
@@ -70,7 +70,9 @@ export default function RootLayout() {
                   <ShareIntentProvider>
                     <ActivityProvider>
                       <FileBatchProvider>
-                        <AppContent />
+                        <UploadSheetProvider>
+                          <AppContent />
+                        </UploadSheetProvider>
                       </FileBatchProvider>
                     </ActivityProvider>
                   </ShareIntentProvider>

@@ -10,6 +10,7 @@ import {
   TouchableRipple,
   useTheme
 } from 'react-native-paper';
+import { UploadStatusBanner } from './UploadStatusBanner';
 
 export function BottomNav() {
   const theme = useTheme();
@@ -22,7 +23,9 @@ export function BottomNav() {
   ] as const;
 
   return (
-    <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
+    <>
+      <UploadStatusBanner />
+      <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
       {items.map((item) => {
         const isActive = pathname === item.route || (item.key === 'home' && pathname === '/');
         const color = isActive ? theme.colors.primary : theme.colors.onSurfaceVariant;
@@ -61,6 +64,7 @@ export function BottomNav() {
         );
       })}
     </View>
+    </>
   );
 }
 

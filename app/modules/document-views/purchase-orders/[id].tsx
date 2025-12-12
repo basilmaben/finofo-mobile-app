@@ -27,6 +27,8 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { UploadButton } from "@/components/UploadButton";
+import { useUploadSheet } from "@/hooks/useUploadSheet";
 import {
   Tabs,
   TabScreen,
@@ -190,6 +192,7 @@ export default function DocumentScreen() {
           <TabContent />
         </AnimatedScrollView>
       </View>
+      <UploadButton ignoreBanner />
     </TabsProvider>
   );
 }
@@ -261,6 +264,7 @@ const TabContent: React.FC = () => {
  */
 const DocumentDetailsCard: React.FC = () => {
   const theme = useTheme();
+  const { openUploadSheet } = useUploadSheet();
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading } = usePurchaseOrderDetails({ id });
@@ -349,7 +353,7 @@ const DocumentDetailsCard: React.FC = () => {
           <Button
             mode="contained"
             style={styles.attachButton}
-            onPress={() => {}}
+            onPress={openUploadSheet}
           >
             Add attachment
           </Button>

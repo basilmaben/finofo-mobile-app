@@ -22,7 +22,6 @@ import {
   IconButton,
   List,
   Menu,
-  ProgressBar,
   Searchbar,
   Text,
   useTheme
@@ -87,7 +86,7 @@ export default function Dashboard() {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [activityMenuVisible, setActivityMenuVisible] = React.useState<string | null>(null);
-  const { files, uploadState, cancelUpload, pauseUpload, resumeUpload, retryUpload } = useFileBatch();
+  const { files } = useFileBatch();
   const { savedFiles, isLoading: activityLoading, removeSavedFile, getFileUri } = useActivity();
   
   // Preview modal state
@@ -96,12 +95,6 @@ export default function Dashboard() {
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [pdfLoading, setPdfLoading] = React.useState(true);
   
-  // Show different banners based on state
-  const hasPendingFiles = files.length > 0 && uploadState.status === 'idle';
-  const isUploading = uploadState.status === 'uploading';
-  const isPaused = uploadState.status === 'paused';
-  const uploadCompleted = uploadState.status === 'completed';
-  const uploadError = uploadState.status === 'error';
 
   const filteredFiles = React.useMemo(() => {
     if (!searchQuery.trim()) return MOCK_FILES;
@@ -250,46 +243,6 @@ export default function Dashboard() {
     );
   };
 
-  const getBannerText = () => {
-    if (isUploading) {
-      return {
-        title: `Uploading ${uploadState.totalFiles || files.length} file${(uploadState.totalFiles || files.length) !== 1 ? 's' : ''}...`,
-        subtitle: `${uploadState.progress}% complete`,
-      };
-    }
-    if (isPaused) {
-      return {
-        title: 'Upload paused',
-        subtitle: `${uploadState.progress}% complete · Tap to resume`,
-      };
-    }
-    if (uploadCompleted) {
-      return {
-        title: 'Upload complete!',
-        subtitle: 'All files uploaded successfully',
-      };
-    }
-    if (uploadError) {
-      return {
-        title: 'Upload failed',
-        subtitle: uploadState.canResume ? 'Tap to retry' : (uploadState.error || 'Something went wrong'),
-      };
-    }
-    return {
-      title: `${files.length} file${files.length !== 1 ? 's' : ''} ready to upload`,
-      subtitle: 'Tap to review and upload',
-    };
-  };
-
-  const handleBannerPress = () => {
-    if (uploadCompleted) {
-      return;
-    }
-    // Always open the drawer when banner is tapped (except when completed)
-    router.push('/modules/upload-preview');
-  };
-
-  const showBanner = hasPendingFiles || isUploading || isPaused || uploadCompleted || uploadError;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
@@ -378,123 +331,6 @@ export default function Dashboard() {
           </Tabs>
         </TabsProvider>
 
-        {/* Upload Status Banner */}
-        {showBanner && (
-          <TouchableOpacity 
-            style={[
-              styles.uploadBanner, 
-              { 
-                backgroundColor: uploadError 
-                  ? theme.colors.errorContainer 
-                  : uploadCompleted 
-                    ? theme.colors.primaryContainer 
-                    : isPaused
-                      ? '#FEF3C7' // Amber-100 for paused state
-                      : theme.colors.surfaceVariant 
-              }
-            ]}
-            onPress={handleBannerPress}
-            activeOpacity={0.8}
-          >
-            <View style={styles.uploadBannerContent}>
-              <View style={styles.uploadBannerText}>
-                <Text 
-                  variant="bodyMedium" 
-                  style={{ 
-                    color: uploadError 
-                      ? theme.colors.onErrorContainer 
-                      : uploadCompleted 
-                        ? theme.colors.onPrimaryContainer 
-                        : isPaused
-                          ? '#92400E' // Amber-800
-                          : theme.colors.onSurface 
-                  }}
-                >
-                  {getBannerText().title}
-                </Text>
-                <Text 
-                  variant="bodySmall" 
-                  style={{ 
-                    color: uploadError 
-                      ? theme.colors.onErrorContainer 
-                      : uploadCompleted 
-                        ? theme.colors.onPrimaryContainer 
-                        : isPaused
-                          ? '#B45309' // Amber-700
-                          : theme.colors.onSurfaceVariant 
-                  }}
-                >
-                  {getBannerText().subtitle}
-                </Text>
-              </View>
-              {isUploading ? (
-                <View style={styles.bannerActions}>
-                  <IconButton 
-                    icon="pause" 
-                    size={20} 
-                    iconColor={theme.colors.onSurfaceVariant}
-                    onPress={pauseUpload}
-                  />
-                  <IconButton 
-                    icon="close" 
-                    size={20} 
-                    iconColor={theme.colors.onSurfaceVariant}
-                    onPress={cancelUpload}
-                  />
-                </View>
-              ) : isPaused ? (
-                <View style={styles.bannerActions}>
-                  <IconButton 
-                    icon="play" 
-                    size={20} 
-                    iconColor="#92400E"
-                    onPress={() => resumeUpload()}
-                  />
-                  <IconButton 
-                    icon="close" 
-                    size={20} 
-                    iconColor="#92400E"
-                    onPress={cancelUpload}
-                  />
-                </View>
-              ) : uploadError && uploadState.canResume ? (
-                <View style={styles.bannerActions}>
-                  <IconButton 
-                    icon="refresh" 
-                    size={20} 
-                    iconColor={theme.colors.onErrorContainer}
-                    onPress={() => retryUpload()}
-                  />
-                  <IconButton 
-                    icon="close" 
-                    size={20} 
-                    iconColor={theme.colors.onErrorContainer}
-                    onPress={cancelUpload}
-                  />
-                </View>
-              ) : (
-                <IconButton 
-                  icon={hasPendingFiles ? "chevron-up" : uploadCompleted ? "check" : "alert-circle"} 
-                  size={20} 
-                  iconColor={
-                    uploadError 
-                      ? theme.colors.onErrorContainer 
-                      : uploadCompleted 
-                        ? theme.colors.onPrimaryContainer 
-                        : theme.colors.onSurfaceVariant
-                  }
-                />
-              )}
-            </View>
-            {(isUploading || isPaused) && (
-              <ProgressBar 
-                progress={uploadState.progress / 100} 
-                color={isPaused ? '#D97706' : theme.colors.primary}
-                style={styles.uploadProgressBar}
-              />
-            )}
-          </TouchableOpacity>
-        )}
         <BottomNav />
         <UploadButton />
       </View>
@@ -633,34 +469,6 @@ const styles = StyleSheet.create({
   activityPlaceholder: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadBanner: {
-    position: 'absolute',
-    bottom: 64, // above bottom nav
-    left: 0,
-    right: 0,
-    paddingTop: 12,
-    paddingHorizontal: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  uploadBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  uploadBannerText: {
-    flex: 1,
-  },
-  uploadProgressBar: {
-    marginTop: 8,
-    marginBottom: 12,
-    height: 3,
-    borderRadius: 2,
-  },
-  bannerActions: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   // Modal styles

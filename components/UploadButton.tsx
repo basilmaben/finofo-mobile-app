@@ -19,6 +19,7 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
+import { useUploadSheet } from '@/hooks/useUploadSheet';
 import { useFileBatch } from '@/store/file-batch-store';
 import type { DocumentFile } from '@/types/document';
 
@@ -44,6 +45,13 @@ export const UploadButton = ({ skipNavigation = false, ignoreBanner = false }: U
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const snapPoints = React.useMemo(() => ['35%'], []);
   const { files, addFiles, uploadState } = useFileBatch();
+  const { registerSheetRef } = useUploadSheet();
+
+  // Register the bottom sheet ref so other components can open it
+  React.useEffect(() => {
+    registerSheetRef(bottomSheetRef.current);
+    return () => registerSheetRef(null);
+  }, [registerSheetRef]);
   
   // Check if upload banner is visible (affects FAB position)
   const hasBanner = !ignoreBanner && (
