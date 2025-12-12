@@ -18,16 +18,23 @@
           {
             "CFBundleTypeName": "Images",
             "LSHandlerRank": "Alternate",
-            "LSItemContentTypes": ["public.image", "public.jpeg", "public.png"]
+            "LSItemContentTypes": [
+              "public.image",
+              "public.jpeg",
+              "public.png"
+            ]
           },
           {
             "CFBundleTypeName": "PDF",
             "LSHandlerRank": "Alternate",
-            "LSItemContentTypes": ["com.adobe.pdf"]
+            "LSItemContentTypes": [
+              "com.adobe.pdf"
+            ]
           }
         ],
         "UIFileSharingEnabled": true,
-        "LSSupportsOpeningDocumentsInPlace": true
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -42,7 +49,9 @@
       "intentFilters": [
         {
           "action": "android.intent.action.SEND",
-          "category": ["android.intent.category.DEFAULT"],
+          "category": [
+            "android.intent.category.DEFAULT"
+          ],
           "data": [
             {
               "mimeType": "image/*"
@@ -54,7 +63,9 @@
         },
         {
           "action": "android.intent.action.SEND_MULTIPLE",
-          "category": ["android.intent.category.DEFAULT"],
+          "category": [
+            "android.intent.category.DEFAULT"
+          ],
           "data": [
             {
               "mimeType": "image/*"
@@ -62,7 +73,10 @@
           ]
         }
       ],
-      "permissions": ["android.permission.CAMERA", "android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -109,8 +123,13 @@
             "NSExtensionActivationSupportsFileWithMaxCount": 10
           },
           "iosShareExtensionName": "Share to Finofo",
-          "androidIntentFilters": ["image/*", "application/pdf"],
-          "androidMultiIntentFilters": ["image/*"]
+          "androidIntentFilters": [
+            "image/*",
+            "application/pdf"
+          ],
+          "androidMultiIntentFilters": [
+            "image/*"
+          ]
         }
       ]
     ],

@@ -9,11 +9,10 @@ export default function Index() {
 	const { isLoaded } = useAuth();
 
 	// Show loading screen while Clerk initializes
-	if (!isLoaded) {
+	if (isLoaded) {
 		return (
 			<View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
 				<FinofoLoader 
-					message="Loading..." 
 					subMessage="Setting up your workspace"
 				/>
 			</View>
