@@ -232,13 +232,22 @@ export const uploadFiles = async (
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      // Case-insensitive filename matching (backend may normalize casing)
       const signedUrl = signedUrlsResponse.signed_urls.find(
-        (url) => url.filename === file.name
+        (url) => url.filename.toLowerCase() === file.name.toLowerCase()
       );
 
-      if (signedUrl) {
-        const baseProgress = 10 + i * progressPerFile;
+      const baseProgress = 10 + i * progressPerFile;
 
+      // Report start of this file upload
+      reportProgress({
+        progress: Math.round(baseProgress),
+        phase: 'uploading',
+        currentFile: i + 1,
+        totalFiles
+      });
+
+      if (signedUrl) {
         await uploadFileToSignedUrl(
           file.uri,
           file.name,
@@ -255,6 +264,14 @@ export const uploadFiles = async (
           }
         );
       }
+
+      // Report completion of this file
+      reportProgress({
+        progress: Math.round(baseProgress + progressPerFile),
+        phase: 'uploading',
+        currentFile: i + 1,
+        totalFiles
+      });
     }
 
     // Phase 3: Complete
