@@ -1,0 +1,37 @@
+fragment PackingSlipTable on PackingSlipDocument {
+  id
+  slipNumber
+  documentUrl
+  createdAt
+}
+
+query GetPackingSlipTable(
+  $first: Int!
+  $after: String
+  $before: String
+  $last: Int
+  $sort: [PackingSlipSort!]
+  $filter: [PackingSlipFilter!]
+) {
+  packingSlips(
+    first: $first
+    after: $after
+    before: $before
+    last: $last
+    sort: $sort
+    filter: $filter
+  ) {
+    edges {
+      node {
+        ...PackingSlipTable
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}

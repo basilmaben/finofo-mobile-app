@@ -1,0 +1,5 @@
+fragment VendorBasics on Vendor {
+  id
+  name
+  entityStatus
+}

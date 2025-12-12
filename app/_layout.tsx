@@ -28,6 +28,7 @@ function AppContent() {
   // Handle files shared from other apps
   useHandleShareIntent();
 
+
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>

@@ -17,7 +17,8 @@ export function BottomNav() {
   const router = useRouter();
 
   const items = [
-    { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/' },
+    { key: 'home', label: 'Dashboard', icon: 'view-dashboard-outline', route: '/' },
+    { key: 'docs', label: 'Documents', icon: 'clipboard-text-outline', route: '/modules/document-views/document-list' },
   ] as const;
 
   return (
@@ -25,7 +26,8 @@ export function BottomNav() {
       {items.map((item) => {
         const isActive = pathname === item.route || (item.key === 'home' && pathname === '/');
         const color = isActive ? theme.colors.primary : theme.colors.onSurfaceVariant;
-        const icon = isActive ? item.activeIcon : item.icon;
+        // const icon = isActive ? item.activeIcon : item.icon;
+        const {icon} = item;
 
         return (
           <TouchableRipple
