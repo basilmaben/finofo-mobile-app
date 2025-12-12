@@ -4,26 +4,8 @@
  * and network resilience with automatic resume capability
  */
 
-import { API_BASE_URL } from '@/config/env';
+import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { requestSignedUrls, uploadFileToSignedUrl } from '@/api/upload';
-
-// NetInfo types (optional dependency)
-interface NetInfoState {
-  isConnected: boolean | null;
-}
-
-// Try to import NetInfo, but don't fail if not available
-let NetInfo: {
-  addEventListener?: (callback: (state: NetInfoState) => void) => () => void;
-} | null = null;
-
-try {
-  // Dynamic import for optional dependency
-  NetInfo = require('@react-native-community/netinfo').default;
-} catch {
-  // NetInfo not available, network monitoring will be disabled
-  console.log('NetInfo not installed, network monitoring disabled');
-}
 import {
   cancelUpload as cancelChunkedUpload,
   type ChunkedUploadProgress,
@@ -95,30 +77,20 @@ export class UploadManager {
    * Set up network state listener for automatic pause/resume
    */
   private setupNetworkListener(): void {
-    // NetInfo subscription for network changes
-    // Optional: Install @react-native-community/netinfo for network monitoring
-    if (NetInfo?.addEventListener) {
-      try {
-        this.networkUnsubscribe = NetInfo.addEventListener(
-          (state: NetInfoState) => {
-            const wasAvailable = this.isNetworkAvailable;
-            this.isNetworkAvailable = state.isConnected ?? false;
+    this.networkUnsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
+      const wasAvailable = this.isNetworkAvailable;
+      this.isNetworkAvailable = state.isConnected ?? false;
 
-            // Auto-resume if network becomes available and we have paused uploads
-            if (!wasAvailable && this.isNetworkAvailable && this.isPaused) {
-              this.resume();
-            }
-
-            // Auto-pause if network becomes unavailable during upload
-            if (wasAvailable && !this.isNetworkAvailable && this.isUploading) {
-              this.pause();
-            }
-          }
-        );
-      } catch (error) {
-        console.log('Failed to set up network listener:', error);
+      // Auto-resume if network becomes available and we have paused uploads
+      if (!wasAvailable && this.isNetworkAvailable && this.isPaused) {
+        this.resume();
       }
-    }
+
+      // Auto-pause if network becomes unavailable during upload
+      if (wasAvailable && !this.isNetworkAvailable && this.isUploading) {
+        this.pause();
+      }
+    });
   }
 
   /**

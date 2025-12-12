@@ -7,8 +7,17 @@
 import { useAuth } from '@clerk/clerk-expo';
 import * as Haptics from 'expo-haptics';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { useToast } from '@/components/Toast';
+import { checkForDuplicate } from '@/services/fileChecksum';
 import { getUploadManager, type BatchUploadProgress, type FileUploadItem } from '@/services/uploadManager';
+import {
+  clearBatchState,
+  loadBatchState,
+  saveBatchState,
+  type PersistedBatch,
+  type PersistedFile,
+} from '@/services/uploadPersistence';
 import { useActivity } from '@/store/activity-store';
 import type { DocumentFile } from '@/types/document';
 
@@ -27,7 +36,7 @@ interface UploadState {
 
 interface FileBatchContextType {
   files: DocumentFile[];
-  addFiles: (files: DocumentFile[]) => void;
+  addFiles: (files: DocumentFile[]) => Promise<void>;
   removeFile: (id: string) => void;
   clearFiles: () => void;
   setFiles: (files: DocumentFile[]) => void;
@@ -36,7 +45,7 @@ interface FileBatchContextType {
   startUpload: () => Promise<void>;
   pauseUpload: () => void;
   resumeUpload: () => Promise<void>;
-  cancelUpload: () => void;
+  cancelUpload: () => Promise<void>;
   retryUpload: () => Promise<void>;
 }
 
@@ -54,6 +63,78 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
   
   // Get the upload manager singleton
   const uploadManager = getUploadManager();
+
+  // Load persisted batch on mount
+  useEffect(() => {
+    const loadPersistedBatch = async () => {
+      const batch = await loadBatchState();
+      if (batch && batch.files.length > 0) {
+        // Only restore files that weren't completed
+        const pendingFiles = batch.files.filter((f) => f.status !== 'completed');
+        if (pendingFiles.length > 0) {
+          const docFiles: DocumentFile[] = pendingFiles.map((f) => ({
+            id: f.id,
+            uri: f.uri,
+            name: f.name,
+            type: f.type,
+            size: f.size,
+            createdAt: new Date(),
+          }));
+          setFilesState(docFiles);
+          
+          // Add to upload manager
+          uploadManager.addFiles(
+            pendingFiles.map((f) => ({
+              uri: f.uri,
+              name: f.name,
+              type: f.type,
+              size: f.size,
+            }))
+          );
+
+          // Show toast if there are resumable files
+          toast.info(
+            `You have ${pendingFiles.length} file${pendingFiles.length !== 1 ? 's' : ''} ready to upload.`,
+            'Resume Upload'
+          );
+        }
+      }
+    };
+    loadPersistedBatch();
+  }, []);
+
+  // Persist batch state when files change
+  useEffect(() => {
+    const persistBatch = async () => {
+      if (files.length === 0) {
+        await clearBatchState();
+        return;
+      }
+
+      const managerFiles = uploadManager.getFiles();
+      const persistedFiles: PersistedFile[] = files.map((f) => {
+        const managerFile = managerFiles.find((mf) => mf.name === f.name);
+        return {
+          id: f.id,
+          uri: f.uri,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          status: managerFile?.status || 'pending',
+          progress: managerFile?.progress || 0,
+          sessionId: managerFile?.sessionId,
+        };
+      });
+
+      const batch: PersistedBatch = {
+        files: persistedFiles,
+        createdAt: new Date().toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      await saveBatchState(batch);
+    };
+    persistBatch();
+  }, [files, uploadState]);
 
   // Subscribe to upload progress updates
   useEffect(() => {
@@ -88,19 +169,98 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addFiles = useCallback((newFiles: DocumentFile[]) => {
-    setFilesState((prev) => [...prev, ...newFiles]);
-    
-    // Also add to upload manager
-    uploadManager.addFiles(
-      newFiles.map((f) => ({
-        uri: f.uri,
-        name: f.name,
-        type: f.type,
-        size: f.size,
-      }))
-    );
-  }, [uploadManager]);
+  const addFiles = useCallback(async (newFiles: DocumentFile[]) => {
+    const filesToAdd: DocumentFile[] = [];
+    const duplicates: { newFile: DocumentFile; existingName: string }[] = [];
+
+    // Check each file for duplicates
+    for (const newFile of newFiles) {
+      const result = await checkForDuplicate(
+        { name: newFile.name, size: newFile.size, type: newFile.type },
+        files.map((f) => ({ id: f.id, name: f.name, size: f.size, type: f.type }))
+      );
+
+      if (result.isDuplicate && result.existingFileName) {
+        duplicates.push({ newFile, existingName: result.existingFileName });
+      } else {
+        filesToAdd.push(newFile);
+      }
+    }
+
+    // Handle duplicates
+    if (duplicates.length > 0) {
+      const duplicateNames = duplicates.map((d) => d.newFile.name).join(', ');
+      
+      Alert.alert(
+        'Duplicate Files Detected',
+        `The following files already exist in the batch:\n\n${duplicateNames}\n\nWhat would you like to do?`,
+        [
+          {
+            text: 'Skip Duplicates',
+            style: 'cancel',
+            onPress: () => {
+              // Only add non-duplicate files
+              if (filesToAdd.length > 0) {
+                setFilesState((prev) => [...prev, ...filesToAdd]);
+                uploadManager.addFiles(
+                  filesToAdd.map((f) => ({
+                    uri: f.uri,
+                    name: f.name,
+                    type: f.type,
+                    size: f.size,
+                  }))
+                );
+                toast.info(`Added ${filesToAdd.length} file(s), skipped ${duplicates.length} duplicate(s).`);
+              } else {
+                toast.info('All files were duplicates and skipped.');
+              }
+            },
+          },
+          {
+            text: 'Replace All',
+            onPress: () => {
+              // Remove existing duplicates and add all new files
+              const duplicateIds = duplicates
+                .map((d) => {
+                  const existing = files.find((f) => f.name === d.existingName || 
+                    (f.size === d.newFile.size && f.type === d.newFile.type));
+                  return existing?.id;
+                })
+                .filter(Boolean) as string[];
+
+              setFilesState((prev) => {
+                const filtered = prev.filter((f) => !duplicateIds.includes(f.id));
+                return [...filtered, ...newFiles];
+              });
+
+              // Update upload manager
+              duplicateIds.forEach((id) => uploadManager.removeFile(id));
+              uploadManager.addFiles(
+                newFiles.map((f) => ({
+                  uri: f.uri,
+                  name: f.name,
+                  type: f.type,
+                  size: f.size,
+                }))
+              );
+              toast.success(`Replaced ${duplicates.length} file(s).`);
+            },
+          },
+        ]
+      );
+    } else {
+      // No duplicates, add all files
+      setFilesState((prev) => [...prev, ...newFiles]);
+      uploadManager.addFiles(
+        newFiles.map((f) => ({
+          uri: f.uri,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+        }))
+      );
+    }
+  }, [files, uploadManager, toast]);
 
   const removeFile = useCallback((id: string) => {
     setFilesState((prev) => prev.filter((f) => f.id !== id));
@@ -178,10 +338,11 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
         }
 
         // Clear files after short delay
-        setTimeout(() => {
+        setTimeout(async () => {
           setFilesState([]);
           uploadManager.clear();
           setUploadState({ status: 'idle', progress: 0 });
+          await clearBatchState(); // Clear persisted state on success
         }, 2000);
       } else {
         const failedCount = result.failedFiles.length;
@@ -311,10 +472,11 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
     }
   }, [files, getToken, saveUploadedFiles, toast, uploadManager, uploadState.status]);
 
-  const cancelUpload = useCallback(() => {
+  const cancelUpload = useCallback(async () => {
     uploadManager.cancel();
     setUploadState({ status: 'idle', progress: 0 });
     setFilesState([]);
+    await clearBatchState(); // Clear persisted state
     toast.info('Upload cancelled', 'Cancelled');
   }, [toast, uploadManager]);
 

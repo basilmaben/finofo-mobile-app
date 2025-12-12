@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/Toast";
 import { darkTheme, lightTheme } from "@/config/theme";
 import { apolloClient } from "@/graphql/apolloClient";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { NetworkProvider } from "@/hooks/useNetworkStatus";
 import { useHandleShareIntent } from "@/hooks/useShareIntent";
 import { ActivityProvider } from "@/store/activity-store";
 import { FileBatchProvider } from "@/store/file-batch-store";
@@ -64,13 +65,15 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <ToastProvider>
-                <ShareIntentProvider>
-                  <ActivityProvider>
-                    <FileBatchProvider>
-                      <AppContent />
-                    </FileBatchProvider>
-                  </ActivityProvider>
-                </ShareIntentProvider>
+                <NetworkProvider>
+                  <ShareIntentProvider>
+                    <ActivityProvider>
+                      <FileBatchProvider>
+                        <AppContent />
+                      </FileBatchProvider>
+                    </ActivityProvider>
+                  </ShareIntentProvider>
+                </NetworkProvider>
               </ToastProvider>
             </GestureHandlerRootView>
           </SafeAreaProvider>

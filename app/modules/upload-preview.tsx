@@ -30,6 +30,7 @@ import {
 } from 'react-native-paper';
 import Pdf from 'react-native-pdf';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { UploadButton } from '@/components/UploadButton';
 import { useFileBatch } from '@/store/file-batch-store';
 import type { DocumentFile } from '@/types/document';
@@ -177,6 +178,7 @@ export default function UploadsScreen() {
   } = useFileBatch();
   const [previewFile, setPreviewFile] = useState<DocumentFile | null>(null);
   const [pdfLoading, setPdfLoading] = useState(true);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   
   // Per-file progress tracking (simulated based on overall progress)
   const [fileStatuses, setFileStatuses] = useState<Map<string, FileUploadStatus>>(new Map());
@@ -239,11 +241,23 @@ export default function UploadsScreen() {
   }, [files, uploadState, isUploading, isPaused, isError, isCompleted]);
 
   const handleClose = () => {
-    // If uploading, just minimize - don't cancel
-    // Otherwise, cancel and clear state
-    if (!isUploading) {
-      cancelUpload();
+    // Show confirmation if there are pending files or active upload
+    if (isUploading || isPaused || files.length > 0) {
+      setShowCloseConfirm(true);
+      return;
     }
+    router.back();
+  };
+
+  const handleConfirmClose = () => {
+    setShowCloseConfirm(false);
+    cancelUpload();
+    router.back();
+  };
+
+  const handleMinimize = () => {
+    // Just minimize without cancelling - upload continues in background
+    setShowCloseConfirm(false);
     router.back();
   };
 
@@ -663,6 +677,22 @@ export default function UploadsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Close Confirmation Modal */}
+      <ConfirmModal
+        visible={showCloseConfirm}
+        onDismiss={() => setShowCloseConfirm(false)}
+        onConfirm={isUploading || isPaused ? handleMinimize : handleConfirmClose}
+        title={isUploading || isPaused ? "Minimize Upload?" : "Discard Files?"}
+        message={
+          isUploading || isPaused
+            ? "Your upload will continue in the background. You can return to check progress anytime."
+            : "You'll lose all files in this batch. This cannot be undone."
+        }
+        confirmLabel={isUploading || isPaused ? "Minimize" : "Discard"}
+        cancelLabel="Stay"
+        destructive={!isUploading && !isPaused}
+      />
     </SafeAreaView>
   );
 }
