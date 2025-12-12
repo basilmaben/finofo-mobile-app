@@ -35,13 +35,27 @@ const isSupportedImageType = (mimeType: string | null | undefined): boolean => {
 interface UploadButtonProps {
   /** If true, won't navigate to upload-preview after adding files (useful when already on that screen) */
   skipNavigation?: boolean;
+  /** If true, hides the banner offset adjustment (for screens that don't show the banner) */
+  ignoreBanner?: boolean;
 }
 
-export const UploadButton = ({ skipNavigation = false }: UploadButtonProps) => {
+export const UploadButton = ({ skipNavigation = false, ignoreBanner = false }: UploadButtonProps) => {
   const theme = useTheme();
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const snapPoints = React.useMemo(() => ['35%'], []);
-  const { files, addFiles } = useFileBatch();
+  const { files, addFiles, uploadState } = useFileBatch();
+  
+  // Check if upload banner is visible (affects FAB position)
+  const hasBanner = !ignoreBanner && (
+    files.length > 0 || 
+    uploadState.status === 'uploading' || 
+    uploadState.status === 'paused' ||
+    uploadState.status === 'completed' ||
+    uploadState.status === 'error'
+  );
+  
+  // FAB bottom position: 80 normally, 160 when banner is visible
+  const fabBottom = hasBanner ? 140 : 80;
 
   const handleOpenSheet = React.useCallback(() => {
     bottomSheetRef.current?.expand();
@@ -191,7 +205,7 @@ export const UploadButton = ({ skipNavigation = false }: UploadButtonProps) => {
     <>
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: fabBottom }]}
         onPress={handleOpenSheet}
       />
 
@@ -237,7 +251,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 28,
     right: 24,
-    bottom: 80,
+    // bottom is set dynamically based on banner visibility
   },
   sheetContent: {
     paddingTop: 8,

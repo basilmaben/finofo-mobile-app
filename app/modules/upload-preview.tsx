@@ -1,11 +1,12 @@
 /**
  * Uploads Screen - Batch Builder
  * Shows batch of files ready to upload with preview capability
+ * Includes circular progress indicators and pause/resume controls
  */
 
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +14,6 @@ import {
   FlatList,
   Image,
   Modal,
-  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -24,7 +24,7 @@ import {
   Chip,
   Divider,
   IconButton,
-  List,
+  ProgressBar,
   Text,
   useTheme,
 } from 'react-native-paper';
@@ -36,36 +36,228 @@ import type { DocumentFile } from '@/types/document';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function UploadsScreen() {
+// Circular Progress Component using View-based approach
+const CircularProgress = ({ 
+  progress, 
+  size = 56, 
+  strokeWidth = 3,
+  status,
+}: { 
+  progress: number; 
+  size?: number;
+  strokeWidth?: number;
+  status: 'pending' | 'uploading' | 'completed' | 'failed' | 'paused';
+}) => {
   const theme = useTheme();
-  const { files, removeFile, clearFiles, startUpload, uploadState } = useFileBatch();
-  const [previewFile, setPreviewFile] = useState<DocumentFile | null>(null);
-  const [pdfLoading, setPdfLoading] = useState(true);
 
-  const isUploading = uploadState.status === 'uploading';
-
-  const handleClose = () => {
-    if (isUploading) {
-      // If uploading, just minimize - don't cancel
-      router.back();
-    } else {
-      router.back();
+  const getColors = () => {
+    switch (status) {
+      case 'completed':
+        return { primary: '#059669', bg: '#D1FAE5' };
+      case 'failed':
+        return { primary: theme.colors.error, bg: theme.colors.errorContainer };
+      case 'paused':
+        return { primary: '#D97706', bg: '#FEF3C7' };
+      case 'uploading':
+        return { primary: '#1C1C1E', bg: '#E5E5EA' }; // Black progress ring
+      default:
+        return { primary: theme.colors.surfaceVariant, bg: theme.colors.surfaceVariant };
     }
   };
 
-  const handleCancelAll = () => {
-    if (files.length === 0) return;
-    
+  const colors = getColors();
+  const innerSize = size - strokeWidth * 2;
+
+  // Create segmented progress ring
+  const segments = 8;
+  const filledSegments = Math.floor((progress / 100) * segments);
+
+  return (
+    <View style={{ width: size, height: size, position: 'relative' }}>
+      {/* Background ring */}
+      <View 
+        style={[
+          circularStyles.ring,
+          { 
+            width: size, 
+            height: size, 
+            borderRadius: size / 2,
+            borderWidth: strokeWidth,
+            borderColor: colors.bg,
+          }
+        ]} 
+      />
+      
+      {/* Progress indicator - simplified arc using border trick */}
+      {progress > 0 && status !== 'pending' && (
+        <View 
+          style={[
+            circularStyles.progressRing,
+            { 
+              width: size, 
+              height: size, 
+              borderRadius: size / 2,
+              borderWidth: strokeWidth,
+              borderColor: 'transparent',
+              borderTopColor: colors.primary,
+              borderRightColor: progress > 25 ? colors.primary : 'transparent',
+              borderBottomColor: progress > 50 ? colors.primary : 'transparent',
+              borderLeftColor: progress > 75 ? colors.primary : 'transparent',
+              transform: [{ rotate: '-45deg' }],
+            }
+          ]} 
+        />
+      )}
+
+      {/* Full ring for completed */}
+      {status === 'completed' && (
+        <View 
+          style={[
+            circularStyles.progressRing,
+            { 
+              width: size, 
+              height: size, 
+              borderRadius: size / 2,
+              borderWidth: strokeWidth,
+              borderColor: colors.primary,
+            }
+          ]} 
+        />
+      )}
+      
+      {/* Center content */}
+      <View style={[circularStyles.center, { width: size, height: size }]}>
+        {status === 'completed' ? (
+          <IconButton icon="check" size={18} iconColor="#059669" style={{ margin: 0 }} />
+        ) : status === 'failed' ? (
+          <IconButton icon="alert-circle" size={18} iconColor={theme.colors.error} style={{ margin: 0 }} />
+        ) : status === 'paused' ? (
+          <IconButton icon="pause" size={16} iconColor="#D97706" style={{ margin: 0 }} />
+        ) : status === 'uploading' ? (
+          <Text variant="labelSmall" style={{ color: colors.primary, fontWeight: '600' }}>
+            {Math.round(progress)}%
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+};
+
+const circularStyles = StyleSheet.create({
+  ring: {
+    position: 'absolute',
+  },
+  progressRing: {
+    position: 'absolute',
+  },
+  center: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
+
+// File status type for per-file tracking
+interface FileUploadStatus {
+  status: 'pending' | 'uploading' | 'completed' | 'failed' | 'paused';
+  progress: number;
+}
+
+export default function UploadsScreen() {
+  const theme = useTheme();
+  const { 
+    files, 
+    removeFile,
+    startUpload, 
+    uploadState,
+    pauseUpload,
+    resumeUpload,
+    cancelUpload,
+    retryUpload,
+  } = useFileBatch();
+  const [previewFile, setPreviewFile] = useState<DocumentFile | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  
+  // Per-file progress tracking (simulated based on overall progress)
+  const [fileStatuses, setFileStatuses] = useState<Map<string, FileUploadStatus>>(new Map());
+
+  const isUploading = uploadState.status === 'uploading';
+  const isPaused = uploadState.status === 'paused';
+  const isError = uploadState.status === 'error';
+  const isCompleted = uploadState.status === 'completed';
+  const isActive = isUploading || isPaused || isError;
+
+  // Update per-file status based on overall upload state
+  useEffect(() => {
+    if (files.length === 0) {
+      setFileStatuses(new Map());
+      return;
+    }
+
+    const newStatuses = new Map<string, FileUploadStatus>();
+    const currentFileIndex = (uploadState.currentFile ?? 1) - 1;
+    const progressPerFile = 100 / files.length;
+
+    files.forEach((file, index) => {
+      let status: FileUploadStatus['status'] = 'pending';
+      let progress = 0;
+
+      if (isCompleted) {
+        status = 'completed';
+        progress = 100;
+      } else if (index < currentFileIndex) {
+        // Already uploaded
+        status = 'completed';
+        progress = 100;
+      } else if (index === currentFileIndex) {
+        // Current file
+        if (isUploading) {
+          status = 'uploading';
+          // Calculate this file's progress from overall progress
+          const baseProgress = currentFileIndex * progressPerFile;
+          const fileProgress = ((uploadState.progress - baseProgress) / progressPerFile) * 100;
+          progress = Math.min(100, Math.max(0, fileProgress));
+        } else if (isPaused) {
+          status = 'paused';
+          const baseProgress = currentFileIndex * progressPerFile;
+          const fileProgress = ((uploadState.progress - baseProgress) / progressPerFile) * 100;
+          progress = Math.min(100, Math.max(0, fileProgress));
+        } else if (isError) {
+          status = 'failed';
+          progress = 0;
+        }
+      } else {
+        // Not yet started
+        status = 'pending';
+        progress = 0;
+      }
+
+      newStatuses.set(file.id, { status, progress });
+    });
+
+    setFileStatuses(newStatuses);
+  }, [files, uploadState, isUploading, isPaused, isError, isCompleted]);
+
+  const handleClose = () => {
+    // If uploading, just minimize - don't cancel
+    // Otherwise, cancel and clear state
+    if (!isUploading) {
+      cancelUpload();
+    }
+    router.back();
+  };
+
+  const handleCancelBatch = () => {
     Alert.alert(
       'Cancel Upload?',
-      'Are you sure you want to cancel all uploads?',
+      'This will cancel all pending uploads. Files already uploaded will remain.',
       [
-        { text: 'Keep', style: 'cancel' },
+        { text: 'Keep Uploading', style: 'cancel' },
         { 
           text: 'Cancel All', 
           style: 'destructive',
           onPress: () => {
-            clearFiles();
+            cancelUpload();
             router.back();
           }
         },
@@ -74,16 +266,39 @@ export default function UploadsScreen() {
   };
 
   const handleRemoveFile = (id: string) => {
+    const fileStatus = fileStatuses.get(id);
+    if (fileStatus?.status === 'uploading') {
+      Alert.alert(
+        'Cannot Remove',
+        'This file is currently uploading. Pause the upload first.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     removeFile(id);
   };
 
   const handleStartUpload = () => {
     if (files.length === 0) return;
-    
-    // Start upload and immediately close drawer
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     startUpload();
+    // Minimize drawer immediately - upload continues in background
     router.back();
+  };
+
+  const handlePauseResume = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isUploading) {
+      pauseUpload();
+    } else if (isPaused) {
+      resumeUpload();
+    }
+  };
+
+  const handleRetry = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    retryUpload();
   };
 
   const handlePreviewFile = (file: DocumentFile) => {
@@ -105,19 +320,51 @@ export default function UploadsScreen() {
     return `${Number.parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
   };
 
+  const getStatusText = (fileStatus: FileUploadStatus | undefined): string => {
+    if (!fileStatus) return 'Pending';
+    switch (fileStatus.status) {
+      case 'completed':
+        return 'Uploaded';
+      case 'uploading':
+        return `Uploading... ${Math.round(fileStatus.progress)}%`;
+      case 'paused':
+        return 'Paused';
+      case 'failed':
+        return 'Failed';
+      default:
+        return 'Pending';
+    }
+  };
+
   const renderFileItem = ({ item }: { item: DocumentFile }) => {
     const isImage = item.type.includes('image');
-    const isPdf = item.type.includes('pdf');
+    const fileStatus = fileStatuses.get(item.id);
+    const status = fileStatus?.status ?? 'pending';
+    const progress = fileStatus?.progress ?? 0;
 
     return (
-      <TouchableOpacity onPress={() => handlePreviewFile(item)} activeOpacity={0.7}>
-        <List.Item
-          title={item.name}
-          description={`${formatSize(item.size)} · Tap to preview`}
-          titleNumberOfLines={1}
-          descriptionNumberOfLines={1}
-          left={() => (
-            <View style={styles.thumbnailContainer}>
+      <TouchableOpacity 
+        onPress={() => handlePreviewFile(item)} 
+        activeOpacity={0.7}
+        disabled={status === 'uploading'}
+      >
+        <View style={styles.fileItem}>
+          {/* Thumbnail with circular progress */}
+          <View style={styles.thumbnailWrapper}>
+            {isActive && (
+              <View style={styles.progressRingWrapper}>
+                <CircularProgress 
+                  progress={progress} 
+                  size={56} 
+                  strokeWidth={3}
+                  status={status}
+                />
+              </View>
+            )}
+            <View style={[
+              styles.thumbnailContainer,
+              isActive && styles.thumbnailContainerActive
+            ]}>
               {isImage ? (
                 <Image source={{ uri: item.uri }} style={styles.thumbnail} />
               ) : (
@@ -126,24 +373,156 @@ export default function UploadsScreen() {
                 </View>
               )}
             </View>
-          )}
-          right={() => (
-            <View style={styles.rightActions}>
+          </View>
+
+          {/* File info */}
+          <View style={styles.fileInfo}>
+            <Text 
+              variant="bodyMedium" 
+              numberOfLines={1}
+              style={{ color: theme.colors.onSurface }}
+            >
+              {item.name}
+            </Text>
+            <Text 
+              variant="bodySmall" 
+              style={{ 
+                color: status === 'failed' 
+                  ? theme.colors.error 
+                  : status === 'completed'
+                    ? '#059669'
+                    : theme.colors.onSurfaceVariant 
+              }}
+            >
+              {formatSize(item.size)} · {getStatusText(fileStatus)}
+            </Text>
+          </View>
+
+          {/* Actions */}
+          <View style={styles.rightActions}>
+            {!isActive && (
+              <>
+                <IconButton
+                  icon="eye-outline"
+                  size={20}
+                  onPress={() => handlePreviewFile(item)}
+                />
+                <IconButton
+                  icon="close"
+                  size={20}
+                  onPress={() => handleRemoveFile(item.id)}
+                />
+              </>
+            )}
+            {status === 'completed' && (
               <IconButton
-                icon="eye-outline"
-                size={20}
-                onPress={() => handlePreviewFile(item)}
+                icon="check-circle"
+                size={24}
+                iconColor="#059669"
               />
+            )}
+            {status === 'failed' && (
               <IconButton
-                icon="close"
+                icon="refresh"
                 size={20}
-                onPress={() => handleRemoveFile(item.id)}
+                iconColor={theme.colors.error}
+                onPress={handleRetry}
               />
-            </View>
-          )}
-          style={styles.listItem}
-        />
+            )}
+          </View>
+        </View>
       </TouchableOpacity>
+    );
+  };
+
+  // Header action button based on state
+  const renderHeaderAction = () => {
+    if (isUploading) {
+      return (
+        <Button 
+          mode="text" 
+          onPress={handlePauseResume}
+          icon="pause"
+          textColor={theme.colors.onSurfaceVariant}
+          compact
+        >
+          Pause
+        </Button>
+      );
+    }
+    if (isPaused) {
+      return (
+        <Button 
+          mode="text" 
+          onPress={handlePauseResume}
+          icon="play"
+          textColor={theme.colors.primary}
+          compact
+        >
+          Resume
+        </Button>
+      );
+    }
+    if (isError) {
+      return (
+        <Button 
+          mode="text" 
+          onPress={handleRetry}
+          icon="refresh"
+          textColor={theme.colors.primary}
+          compact
+        >
+          Retry
+        </Button>
+      );
+    }
+    if (files.length > 0) {
+      return (
+        <Button 
+          mode="text" 
+          onPress={handleStartUpload}
+          textColor={theme.colors.primary}
+          compact
+        >
+          Upload
+        </Button>
+      );
+    }
+    return null;
+  };
+
+  // Status banner at top
+  const renderStatusBanner = () => {
+    if (!isActive && !isCompleted) return null;
+
+    let bgColor = theme.colors.primaryContainer;
+    let textColor = theme.colors.onPrimaryContainer;
+    let message = '';
+
+    if (isUploading) {
+      bgColor = theme.colors.primaryContainer;
+      textColor = theme.colors.onPrimaryContainer;
+      message = `Uploading ${uploadState.currentFile} of ${uploadState.totalFiles}... ${uploadState.progress}%`;
+    } else if (isPaused) {
+      bgColor = '#FEF3C7';
+      textColor = '#92400E';
+      message = `Paused at ${uploadState.progress}% · Tap Resume to continue`;
+    } else if (isError) {
+      bgColor = theme.colors.errorContainer;
+      textColor = theme.colors.onErrorContainer;
+      message = uploadState.error || 'Upload failed. Tap Retry to try again.';
+    } else if (isCompleted) {
+      bgColor = '#D1FAE5';
+      textColor = '#065F46';
+      message = 'All files uploaded successfully!';
+    }
+
+    return (
+      <View style={[styles.statusBanner, { backgroundColor: bgColor }]}>
+        <Text variant="bodySmall" style={{ color: textColor }}>
+          {message}
+        </Text>
+      </View>
     );
   };
 
@@ -153,29 +532,21 @@ export default function UploadsScreen() {
       edges={['bottom']}
     >
       {/* Header */}
-      <Appbar.Header style={{ backgroundColor: theme.colors.background, marginTop: 16, paddingHorizontal: 8 }} elevated={false} statusBarHeight={0}>
+      <Appbar.Header 
+        style={{ backgroundColor: theme.colors.background, marginTop: 16, paddingHorizontal: 8 }} 
+        elevated={false} 
+        statusBarHeight={0}
+      >
         <Appbar.Action icon="close" onPress={handleClose} />
-        <Appbar.Content title="Uploads" titleStyle={styles.headerTitle} />
-        {isUploading ? (
-          <Button 
-            mode="text" 
-            onPress={handleCancelAll}
-            textColor={theme.colors.onSurfaceVariant}
-            compact
-          >
-            Cancel all
-          </Button>
-        ) : files.length > 0 ? (
-          <Button 
-            mode="text" 
-            onPress={handleStartUpload}
-            textColor={theme.colors.primary}
-            compact
-          >
-            Upload
-          </Button>
-        ) : null}
+        <Appbar.Content 
+          title={isActive ? 'Uploading' : 'Uploads'} 
+          titleStyle={styles.headerTitle} 
+        />
+        {renderHeaderAction()}
       </Appbar.Header>
+
+      {/* Status Banner */}
+      {renderStatusBanner()}
 
       {/* Sort/Filter Bar */}
       <View style={styles.filterBar}>
@@ -186,6 +557,16 @@ export default function UploadsScreen() {
         >
           Date added
         </Chip>
+        {isActive && (
+          <Chip 
+            icon="close-circle-outline" 
+            style={[styles.filterChip, { marginLeft: 'auto' }]}
+            onPress={handleCancelBatch}
+            compact
+          >
+            Cancel batch
+          </Chip>
+        )}
       </View>
 
       <Divider />
@@ -208,8 +589,8 @@ export default function UploadsScreen() {
         }
       />
 
-      {/* FAB for adding more files */}
-      <UploadButton skipNavigation />
+      {/* FAB for adding more files - hidden during upload */}
+      {!isActive && <UploadButton skipNavigation ignoreBanner />}
 
       {/* File Preview Modal */}
       <Modal
@@ -219,7 +600,6 @@ export default function UploadsScreen() {
         onRequestClose={closePreview}
       >
         <View style={styles.modalOverlay}>
-          {/* Content - Image or PDF (full screen behind header) */}
           {previewFile && (
             <View style={styles.previewContent} pointerEvents="box-none">
               {previewFile.type.includes('image') ? (
@@ -254,7 +634,6 @@ export default function UploadsScreen() {
             </View>
           )}
 
-          {/* Header - Absolutely positioned on top */}
           <SafeAreaView style={styles.modalHeaderContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity 
@@ -273,7 +652,6 @@ export default function UploadsScreen() {
             </View>
           </SafeAreaView>
 
-          {/* Footer - Absolutely positioned at bottom */}
           <View style={styles.modalFooterContainer} pointerEvents="none">
             <SafeAreaView edges={['bottom']}>
               <View style={styles.modalFooter}>
@@ -296,6 +674,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: '600',
   },
+  statusBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
   filterBar: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -309,24 +691,42 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 100,
   },
-  listItem: {
-    paddingVertical: 8,
+  fileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  thumbnailWrapper: {
+    position: 'relative',
+    width: 56,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressRingWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   thumbnailContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     width: 48,
     height: 48,
-    marginLeft: 8,
   },
-  thumbnail: {
+  thumbnailContainerActive: {
     width: 44,
     height: 44,
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
     borderRadius: 6,
   },
   pdfThumbnail: {
-    width: 44,
-    height: 44,
+    width: '100%',
+    height: '100%',
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
@@ -334,6 +734,11 @@ const styles = StyleSheet.create({
   pdfText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  fileInfo: {
+    flex: 1,
+    marginLeft: 12,
+    gap: 2,
   },
   rightActions: {
     flexDirection: 'row',
@@ -436,9 +841,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 12,
     fontSize: 14,
-  },
-  hidden: {
-    opacity: 0,
   },
   modalFooter: {
     paddingVertical: 16,

@@ -68,11 +68,12 @@ const getFileType = (mimeType: string): 'pdf' | 'jpg' | 'png' => {
 };
 
 /**
- * Get Content-Type for S3 upload (S3 policy expects 'jpeg' not 'jpg')
+ * Get Content-Type for S3 upload
+ * Note: Backend S3 policy expects short form (jpeg, png, pdf)
  */
 const getS3ContentType = (mimeType: string): string => {
   if (mimeType === 'application/pdf') return 'pdf';
-  if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') return 'jpeg'; // S3 policy expects 'jpeg'
+  if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') return 'jpeg'; // S3 policy expects 'jpeg' not 'jpg'
   if (mimeType === 'image/png') return 'png';
   return 'jpeg'; // Default
 };
@@ -111,12 +112,17 @@ export const requestSignedUrls = async (
   });
 
   if (!response.ok) {
-    let errorMessage = 'Failed to request signed URLs';
+    let errorMessage = 'Upload failed';
     try {
-      const errorData = await response.json();
-      errorMessage = errorData.detail?.[0]?.msg || errorData.detail || errorMessage;
+      const responseText = await response.text();
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.detail?.[0]?.msg || errorData.detail || errorData.message || errorMessage;
+      } catch {
+        // Not JSON
+      }
     } catch {
-      errorMessage = `${response.status} ${response.statusText}`;
+      // Failed to read response
     }
     throw new Error(errorMessage);
   }
@@ -135,27 +141,24 @@ export const uploadFileToSignedUrl = async (
   signedUrl: SignedUrl,
   onProgress?: (progress: number) => void
 ): Promise<void> => {
-  // Get the Content-Type that matches the S3 policy (pdf, jpeg, png - NOT jpg!)
-  const s3ContentType = getS3ContentType(fileType);
-  
   const formData = new FormData();
 
-  // Add acl first (required by policy)
+  // Add acl field first - required by S3 policy
   formData.append('acl', 'private');
   
-  // Add Content-Type that matches the S3 policy (jpeg, not jpg!)
-  formData.append('Content-Type', s3ContentType);
+  // Add Content-Type field - required by S3 policy
+  formData.append('Content-Type', getS3ContentType(fileType));
 
-  // Add all signed URL fields
+  // Add all signed URL fields (policy, signature, key, etc.)
   Object.entries(signedUrl.fields).forEach(([key, value]) => {
     formData.append(key, String(value));
   });
 
-  // Add the file - React Native format
+  // Add the file LAST - this is required by S3 presigned POST
   formData.append('file', {
     uri: fileUri,
     name: fileName,
-    type: fileType,
+    type: getS3ContentType(fileType),
   } as any);
 
   // Use XMLHttpRequest for progress tracking
@@ -178,7 +181,7 @@ export const uploadFileToSignedUrl = async (
         // CORS or network issue, but upload may have succeeded
         resolve();
       } else {
-        reject(new Error(`Failed to upload ${fileName}: ${xhr.status} ${xhr.statusText}`));
+        reject(new Error(`Upload failed`));
       }
     });
 
@@ -186,12 +189,12 @@ export const uploadFileToSignedUrl = async (
       if (xhr.readyState === 4 && xhr.status === 0) {
         resolve();
       } else {
-        reject(new Error(`Network error while uploading ${fileName}`));
+        reject(new Error(`Upload failed`));
       }
     });
 
     xhr.addEventListener('abort', () => {
-      reject(new Error(`Upload of ${fileName} was aborted`));
+      reject(new Error(`Upload cancelled`));
     });
 
     xhr.open('POST', signedUrl.url);
@@ -296,4 +299,5 @@ export const uploadFiles = async (
     };
   }
 };
+
 
