@@ -1,29 +1,8 @@
-fragment VendorBasics on Vendor {
-  id
-  name
-}
-
 fragment PurchaseOrderTable on PurchaseOrderDocument {
   id
   purchaseOrderNumber
-  vendor {
-    ...VendorBasics
-  }
-  vendorName
+  documentUrl
   createdAt
-  totalAmount
-  status
-  currency
-  exceptions {
-    id
-    type
-  }
-  invoices {
-    id
-  }
-  packingSlips {
-    id
-  }
 }
 
 query GetPurchaseOrderTable(

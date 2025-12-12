@@ -78,8 +78,6 @@ export function Dashboard() {
     return MOCK_FILES.filter((file) => file.name.toLowerCase().includes(q));
   }, [searchQuery]);
 
-
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />

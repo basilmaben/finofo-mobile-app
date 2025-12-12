@@ -18,7 +18,7 @@ export function BottomNav() {
 
   const items = [
     { key: 'home', label: 'Dashboard', icon: 'view-dashboard-outline', route: '/' },
-    { key: 'purchase-orders', label: 'Purchase Orders', icon: 'clipboard-text-outline', route: '/modules/purchase-orders/table' },
+    { key: 'docs', label: 'Documents', icon: 'clipboard-text-outline', route: '/modules/document-views/document-list' },
     { key: 'files', label: 'Files', icon: 'file-document-outline', route: '/files' },
   ] as const;
 
