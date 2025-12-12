@@ -3,6 +3,7 @@
  * App navigation structure with authentication providers
  */
 
+import { ToastProvider } from "@/components/Toast";
 import { darkTheme, lightTheme } from "@/config/theme";
 import { apolloClient } from "@/graphql/apolloClient";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -62,13 +63,15 @@ export default function RootLayout() {
         <PaperProvider theme={theme}>
           <SafeAreaProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
-              <ShareIntentProvider>
-                <ActivityProvider>
-                  <FileBatchProvider>
-                    <AppContent />
-                  </FileBatchProvider>
-                </ActivityProvider>
-              </ShareIntentProvider>
+              <ToastProvider>
+                <ShareIntentProvider>
+                  <ActivityProvider>
+                    <FileBatchProvider>
+                      <AppContent />
+                    </FileBatchProvider>
+                  </ActivityProvider>
+                </ShareIntentProvider>
+              </ToastProvider>
             </GestureHandlerRootView>
           </SafeAreaProvider>
         </PaperProvider>

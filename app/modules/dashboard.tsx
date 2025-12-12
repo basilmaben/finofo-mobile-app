@@ -87,7 +87,7 @@ export default function Dashboard() {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [activityMenuVisible, setActivityMenuVisible] = React.useState<string | null>(null);
-  const { files, uploadState, cancelUpload } = useFileBatch();
+  const { files, uploadState, cancelUpload, pauseUpload, resumeUpload, retryUpload } = useFileBatch();
   const { savedFiles, isLoading: activityLoading, removeSavedFile, getFileUri } = useActivity();
   
   // Preview modal state
@@ -99,6 +99,7 @@ export default function Dashboard() {
   // Show different banners based on state
   const hasPendingFiles = files.length > 0 && uploadState.status === 'idle';
   const isUploading = uploadState.status === 'uploading';
+  const isPaused = uploadState.status === 'paused';
   const uploadCompleted = uploadState.status === 'completed';
   const uploadError = uploadState.status === 'error';
 
@@ -256,6 +257,12 @@ export default function Dashboard() {
         subtitle: `${uploadState.progress}% complete`,
       };
     }
+    if (isPaused) {
+      return {
+        title: 'Upload paused',
+        subtitle: `${uploadState.progress}% complete · Tap to resume`,
+      };
+    }
     if (uploadCompleted) {
       return {
         title: 'Upload complete!',
@@ -265,7 +272,7 @@ export default function Dashboard() {
     if (uploadError) {
       return {
         title: 'Upload failed',
-        subtitle: uploadState.error || 'Something went wrong',
+        subtitle: uploadState.canResume ? 'Tap to retry' : (uploadState.error || 'Something went wrong'),
       };
     }
     return {
@@ -275,14 +282,14 @@ export default function Dashboard() {
   };
 
   const handleBannerPress = () => {
-    if (isUploading || uploadCompleted) {
-      // Could open a details modal, for now just do nothing
+    if (uploadCompleted) {
       return;
     }
+    // Always open the drawer when banner is tapped (except when completed)
     router.push('/modules/upload-preview');
   };
 
-  const showBanner = hasPendingFiles || isUploading || uploadCompleted || uploadError;
+  const showBanner = hasPendingFiles || isUploading || isPaused || uploadCompleted || uploadError;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
@@ -381,11 +388,13 @@ export default function Dashboard() {
                   ? theme.colors.errorContainer 
                   : uploadCompleted 
                     ? theme.colors.primaryContainer 
-                    : theme.colors.surfaceVariant 
+                    : isPaused
+                      ? '#FEF3C7' // Amber-100 for paused state
+                      : theme.colors.surfaceVariant 
               }
             ]}
             onPress={handleBannerPress}
-            activeOpacity={isUploading ? 1 : 0.8}
+            activeOpacity={0.8}
           >
             <View style={styles.uploadBannerContent}>
               <View style={styles.uploadBannerText}>
@@ -396,7 +405,9 @@ export default function Dashboard() {
                       ? theme.colors.onErrorContainer 
                       : uploadCompleted 
                         ? theme.colors.onPrimaryContainer 
-                        : theme.colors.onSurface 
+                        : isPaused
+                          ? '#92400E' // Amber-800
+                          : theme.colors.onSurface 
                   }}
                 >
                   {getBannerText().title}
@@ -408,19 +419,59 @@ export default function Dashboard() {
                       ? theme.colors.onErrorContainer 
                       : uploadCompleted 
                         ? theme.colors.onPrimaryContainer 
-                        : theme.colors.onSurfaceVariant 
+                        : isPaused
+                          ? '#B45309' // Amber-700
+                          : theme.colors.onSurfaceVariant 
                   }}
                 >
                   {getBannerText().subtitle}
                 </Text>
               </View>
               {isUploading ? (
-                <IconButton 
-                  icon="close" 
-                  size={20} 
-                  iconColor={theme.colors.onSurfaceVariant}
-                  onPress={cancelUpload}
-                />
+                <View style={styles.bannerActions}>
+                  <IconButton 
+                    icon="pause" 
+                    size={20} 
+                    iconColor={theme.colors.onSurfaceVariant}
+                    onPress={pauseUpload}
+                  />
+                  <IconButton 
+                    icon="close" 
+                    size={20} 
+                    iconColor={theme.colors.onSurfaceVariant}
+                    onPress={cancelUpload}
+                  />
+                </View>
+              ) : isPaused ? (
+                <View style={styles.bannerActions}>
+                  <IconButton 
+                    icon="play" 
+                    size={20} 
+                    iconColor="#92400E"
+                    onPress={() => resumeUpload()}
+                  />
+                  <IconButton 
+                    icon="close" 
+                    size={20} 
+                    iconColor="#92400E"
+                    onPress={cancelUpload}
+                  />
+                </View>
+              ) : uploadError && uploadState.canResume ? (
+                <View style={styles.bannerActions}>
+                  <IconButton 
+                    icon="refresh" 
+                    size={20} 
+                    iconColor={theme.colors.onErrorContainer}
+                    onPress={() => retryUpload()}
+                  />
+                  <IconButton 
+                    icon="close" 
+                    size={20} 
+                    iconColor={theme.colors.onErrorContainer}
+                    onPress={cancelUpload}
+                  />
+                </View>
               ) : (
                 <IconButton 
                   icon={hasPendingFiles ? "chevron-up" : uploadCompleted ? "check" : "alert-circle"} 
@@ -435,10 +486,10 @@ export default function Dashboard() {
                 />
               )}
             </View>
-            {isUploading && (
+            {(isUploading || isPaused) && (
               <ProgressBar 
                 progress={uploadState.progress / 100} 
-                color={theme.colors.primary}
+                color={isPaused ? '#D97706' : theme.colors.primary}
                 style={styles.uploadProgressBar}
               />
             )}
@@ -607,6 +658,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     height: 3,
     borderRadius: 2,
+  },
+  bannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   // Modal styles
   modalOverlay: {
