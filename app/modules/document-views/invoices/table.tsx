@@ -31,6 +31,7 @@ export const InvoiceTable: React.FC<{searchQuery?: string}> = ({searchQuery}) =>
   const extractTitle = (node: unknown) => titleFormatter('Invoice', (node as InvoiceDocument).documentUrl, (node as InvoiceDocument).invoiceNumber);
   return (
     <DocumentTable
+      onPress={()=>{}}
       loading={loading}
       edges={edges}
       onRefresh={onRefresh}

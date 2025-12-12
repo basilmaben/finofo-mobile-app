@@ -31,9 +31,10 @@ type DocumentTableProps = {
   loading: boolean;
   onEndReached: () => void;
   onRefresh: () => void;
+  onPress: (item: unknown) => void;
 }
 
-export const DocumentTable: React.FC<DocumentTableProps> = ({edges, loading, onEndReached, onRefresh, titleExtractor}) => {
+export const DocumentTable: React.FC<DocumentTableProps> = ({edges, loading, onEndReached, onRefresh, titleExtractor, onPress}) => {
 
   return (
     <FlatList
@@ -51,6 +52,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({edges, loading, onE
       }
       renderItem={({ item }) => (
         <List.Item
+          onPress={() => onPress(item.node)}
           title={titleExtractor(item.node)}
           description={`You uploaded · ${formatDate(item.node.createdAt)}`}
           left={(props) => (

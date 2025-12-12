@@ -5,10 +5,12 @@ import {
 import { DocumentTable } from '../common/table';
 import { usePurchaseOrderTable } from './data/usePurchaseOrderTable';
 import { useFormattedTitle } from '../common/useFormattedTitle';
+import { useRouter } from 'expo-router';
 
 
 export const PurchaseOrderTable: React.FC<{searchQuery?: string}> = ({searchQuery}) => {
 
+  const router = useRouter();
   const { data, loading, refetch, fetchMore } = usePurchaseOrderTable();
   const edges = data?.purchaseOrders?.edges ?? [];
   const pageInfo = data?.purchaseOrders?.pageInfo;
@@ -29,10 +31,16 @@ export const PurchaseOrderTable: React.FC<{searchQuery?: string}> = ({searchQuer
   }, [fetchMore, pageInfo?.hasNextPage, pageInfo?.endCursor]);
 
   const titleFormatter = useFormattedTitle()
-  const extractTitle = (node: unknown) => titleFormatter('Purchase Order',(node as PurchaseOrderDocument).documentUrl, (node as PurchaseOrderDocument).purchaseOrderNumber);
-
+  const extractTitle = (node: unknown) => {
+    const {documentUrl, purchaseOrderNumber} = node as PurchaseOrderDocument;
+    return titleFormatter('Purchase Order',documentUrl, purchaseOrderNumber)
+  };
+  const onPress = () => {
+    router.push('/modules/document-views/purchase-orders/details');
+  }
   return (
     <DocumentTable
+      onPress={onPress}
       loading={loading}
       edges={edges}
       onRefresh={onRefresh}

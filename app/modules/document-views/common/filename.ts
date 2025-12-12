@@ -12,12 +12,23 @@ export const getFilename = (url?: string | null) => {
   return `${filename.slice(0, 13)}...${filename.slice(-13)}`;
 }
 
+export const getFileExtension = (url?: string | null) => {
+  if (!url) {
+    return null;
+  }
+  const filename = getFilename(url);
+  const ext = filename.split('.').pop();
+  if (!ext) {
+    return null;
+  }
+  return ext;
+}
+
 export const getFileIcon = (url?: string | null) => {
   if (!url) {
     return 'cloud-question';
   }
-  const filename = getFilename(url);
-  const ext = filename.split('.').pop();
+  const ext = getFileExtension(url);
   if (!ext) {
     return 'cloud-question';
   }

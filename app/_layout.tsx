@@ -51,6 +51,8 @@ const FinofoDarkTheme = {
   },
 };
 
+
+
 // Inner component that can use the share intent hook (needs to be inside FileBatchProvider)
 function AppContent() {
   const colorScheme = useColorScheme();
@@ -58,11 +60,13 @@ function AppContent() {
   // Handle files shared from other apps
   useHandleShareIntent();
 
+
   return (
     <ThemeProvider
       value={colorScheme === "dark" ? FinofoDarkTheme : FinofoLightTheme}
     >
       <Stack screenOptions={{ headerShown: false }}>
+
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="capture"

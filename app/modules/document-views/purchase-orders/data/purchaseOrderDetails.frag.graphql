@@ -1,0 +1,21 @@
+fragment PurchaseOrderDetails on PurchaseOrderDocument {
+  id
+  purchaseOrderNumber
+  documentUrl
+  status
+  type
+  currency
+  createdAt
+  vendor {
+  ...VendorBasics
+  }
+  vendorName
+  totalAmount
+
+}
+
+query GetPurchaseOrderDetails($id: UUID!) {
+  purchaseOrder(id: $id) {
+    ...PurchaseOrderDetails
+  }
+}

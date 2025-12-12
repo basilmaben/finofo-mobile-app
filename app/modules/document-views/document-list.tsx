@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {
   Searchbar,
-  Text,
   useTheme
 } from 'react-native-paper';
 import {

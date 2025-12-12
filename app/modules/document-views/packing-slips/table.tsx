@@ -33,6 +33,7 @@ export const PackingSlipTable: React.FC<{searchQuery?: string}> = ({searchQuery}
 
   return (
     <DocumentTable
+      onPress={()=>{}}
       loading={loading}
       edges={edges}
       onRefresh={onRefresh}
