@@ -7,6 +7,7 @@ import { darkTheme, lightTheme } from "@/config/theme";
 import { apolloClient } from "@/graphql/apolloClient";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useHandleShareIntent } from "@/hooks/useShareIntent";
+import { ActivityProvider } from "@/store/activity-store";
 import { FileBatchProvider } from "@/store/file-batch-store";
 import { ApolloProvider } from "@apollo/client/react";
 import { ClerkProvider } from "@clerk/clerk-expo";
@@ -62,9 +63,11 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <ShareIntentProvider>
-                <FileBatchProvider>
-                  <AppContent />
-                </FileBatchProvider>
+                <ActivityProvider>
+                  <FileBatchProvider>
+                    <AppContent />
+                  </FileBatchProvider>
+                </ActivityProvider>
               </ShareIntentProvider>
             </GestureHandlerRootView>
           </SafeAreaProvider>
