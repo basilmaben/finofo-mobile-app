@@ -1,14 +1,21 @@
 /**
  * Uploads Screen - Batch Builder
- * Shows batch of files ready to upload
+ * Shows batch of files ready to upload with preview capability
  */
 
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
+  Image,
+  Modal,
+  Platform,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {
@@ -18,19 +25,22 @@ import {
   Divider,
   IconButton,
   List,
-  Menu,
   Text,
   useTheme,
 } from 'react-native-paper';
+import Pdf from 'react-native-pdf';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
 import { UploadButton } from '@/components/UploadButton';
 import { useFileBatch } from '@/store/file-batch-store';
+import type { DocumentFile } from '@/types/document';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function UploadsScreen() {
   const theme = useTheme();
   const { files, removeFile, clearFiles, startUpload, uploadState } = useFileBatch();
-  const [sortMenuVisible, setSortMenuVisible] = useState(false);
+  const [previewFile, setPreviewFile] = useState<DocumentFile | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(true);
 
   const isUploading = uploadState.status === 'uploading';
 
@@ -76,6 +86,17 @@ export default function UploadsScreen() {
     router.back();
   };
 
+  const handlePreviewFile = (file: DocumentFile) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPdfLoading(true);
+    setPreviewFile(file);
+  };
+
+  const closePreview = () => {
+    setPreviewFile(null);
+    setPdfLoading(true);
+  };
+
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -84,39 +105,55 @@ export default function UploadsScreen() {
     return `${Number.parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
   };
 
-  const renderFileItem = ({ item }: { item: typeof files[0] }) => {
+  const renderFileItem = ({ item }: { item: DocumentFile }) => {
+    const isImage = item.type.includes('image');
+    const isPdf = item.type.includes('pdf');
+
     return (
-      <List.Item
-        title={item.name}
-        description={`${formatSize(item.size)} · Waiting to upload`}
-        titleNumberOfLines={1}
-        descriptionNumberOfLines={1}
-        left={() => (
-          <View style={styles.fileIconContainer}>
-            <List.Icon 
-              icon={item.type.includes('pdf') ? 'file-pdf-box' : 'file-image'} 
-            />
-          </View>
-        )}
-        right={() => (
-          <IconButton
-            icon="close"
-            size={20}
-            onPress={() => handleRemoveFile(item.id)}
-          />
-        )}
-        style={styles.listItem}
-      />
+      <TouchableOpacity onPress={() => handlePreviewFile(item)} activeOpacity={0.7}>
+        <List.Item
+          title={item.name}
+          description={`${formatSize(item.size)} · Tap to preview`}
+          titleNumberOfLines={1}
+          descriptionNumberOfLines={1}
+          left={() => (
+            <View style={styles.thumbnailContainer}>
+              {isImage ? (
+                <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+              ) : (
+                <View style={[styles.pdfThumbnail, { backgroundColor: theme.colors.errorContainer }]}>
+                  <Text style={[styles.pdfText, { color: theme.colors.onErrorContainer }]}>PDF</Text>
+                </View>
+              )}
+            </View>
+          )}
+          right={() => (
+            <View style={styles.rightActions}>
+              <IconButton
+                icon="eye-outline"
+                size={20}
+                onPress={() => handlePreviewFile(item)}
+              />
+              <IconButton
+                icon="close"
+                size={20}
+                onPress={() => handleRemoveFile(item.id)}
+              />
+            </View>
+          )}
+          style={styles.listItem}
+        />
+      </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]} 
-      edges={['top', 'bottom']}
+      edges={['bottom']}
     >
       {/* Header */}
-      <Appbar.Header style={{ backgroundColor: theme.colors.background }} elevated={false}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.background, marginTop: 16, paddingHorizontal: 8 }} elevated={false} statusBarHeight={0}>
         <Appbar.Action icon="close" onPress={handleClose} />
         <Appbar.Content title="Uploads" titleStyle={styles.headerTitle} />
         {isUploading ? (
@@ -142,24 +179,13 @@ export default function UploadsScreen() {
 
       {/* Sort/Filter Bar */}
       <View style={styles.filterBar}>
-        <Menu
-          visible={sortMenuVisible}
-          onDismiss={() => setSortMenuVisible(false)}
-          anchor={
-            <Chip 
-              icon="sort" 
-              onPress={() => setSortMenuVisible(true)}
-              style={styles.filterChip}
-              compact
-            >
-              Date uploaded
-            </Chip>
-          }
+        <Chip 
+          icon="sort" 
+          style={styles.filterChip}
+          compact
         >
-          <Menu.Item onPress={() => setSortMenuVisible(false)} title="Date uploaded" />
-          <Menu.Item onPress={() => setSortMenuVisible(false)} title="Name" />
-          <Menu.Item onPress={() => setSortMenuVisible(false)} title="Size" />
-        </Menu>
+          Date added
+        </Chip>
       </View>
 
       <Divider />
@@ -184,6 +210,81 @@ export default function UploadsScreen() {
 
       {/* FAB for adding more files */}
       <UploadButton skipNavigation />
+
+      {/* File Preview Modal */}
+      <Modal
+        visible={previewFile !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closePreview}
+      >
+        <View style={styles.modalOverlay}>
+          {/* Content - Image or PDF (full screen behind header) */}
+          {previewFile && (
+            <View style={styles.previewContent} pointerEvents="box-none">
+              {previewFile.type.includes('image') ? (
+                <View pointerEvents="none" style={styles.imageWrapper}>
+                  <Image
+                    source={{ uri: previewFile.uri }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : previewFile.type.includes('pdf') ? (
+                <>
+                  {pdfLoading && (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color="#FFFFFF" />
+                      <Text style={styles.loadingText}>Loading PDF...</Text>
+                    </View>
+                  )}
+                  <Pdf
+                    source={{ uri: previewFile.uri }}
+                    style={styles.pdfViewer}
+                    onLoadComplete={() => setPdfLoading(false)}
+                    onError={() => {
+                      setPdfLoading(false);
+                      Alert.alert('Error', 'Failed to load PDF');
+                    }}
+                    enablePaging
+                    horizontal
+                  />
+                </>
+              ) : null}
+            </View>
+          )}
+
+          {/* Header - Absolutely positioned on top */}
+          <SafeAreaView style={styles.modalHeaderContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity 
+                onPress={closePreview} 
+                style={styles.closeButton}
+                activeOpacity={0.6}
+              >
+                <View style={styles.closeIconCircle}>
+                  <Text style={styles.closeIconText}>✕</Text>
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle} numberOfLines={1}>
+                {previewFile?.name}
+              </Text>
+              <View style={{ width: 48 }} />
+            </View>
+          </SafeAreaView>
+
+          {/* Footer - Absolutely positioned at bottom */}
+          <View style={styles.modalFooterContainer} pointerEvents="none">
+            <SafeAreaView edges={['bottom']}>
+              <View style={styles.modalFooter}>
+                <Text style={styles.modalFooterText}>
+                  {previewFile ? formatSize(previewFile.size) : ''}
+                </Text>
+              </View>
+            </SafeAreaView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -211,10 +312,32 @@ const styles = StyleSheet.create({
   listItem: {
     paddingVertical: 8,
   },
-  fileIconContainer: {
+  thumbnailContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    width: 40,
+    width: 48,
+    height: 48,
+    marginLeft: 8,
+  },
+  thumbnail: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+  },
+  pdfThumbnail: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pdfText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,
@@ -222,5 +345,107 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 60,
     gap: 8,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  modalHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    elevation: 999,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    marginTop: 40,
+  },
+  modalFooterContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  closeButton: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 101,
+  },
+  closeIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeIconText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  previewContent: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  imageWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.7,
+  },
+  pdfViewer: {
+    flex: 1,
+    width: SCREEN_WIDTH,
+    backgroundColor: 'transparent',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    marginTop: 12,
+    fontSize: 14,
+  },
+  hidden: {
+    opacity: 0,
+  },
+  modalFooter: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  modalFooterText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
   },
 });

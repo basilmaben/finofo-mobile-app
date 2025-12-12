@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/clerk-expo';
 import * as Haptics from 'expo-haptics';
 import { createContext, type ReactNode, useCallback, useContext, useState } from 'react';
 import { uploadFiles, type UploadProgress } from '@/api/upload';
+import { useActivity } from '@/store/activity-store';
 import type { DocumentFile } from '@/types/document';
 
 type UploadStatus = 'idle' | 'uploading' | 'completed' | 'error';
@@ -40,6 +41,7 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
     progress: 0,
   });
   const { getToken } = useAuth();
+  const { saveUploadedFiles } = useActivity();
 
   const addFiles = useCallback((newFiles: DocumentFile[]) => {
     setFilesState((prev) => [...prev, ...newFiles]);
@@ -102,6 +104,14 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
+        // Save files to encrypted local storage for Activity tab
+        try {
+          await saveUploadedFiles(files, result.uploadJobId);
+        } catch (saveError) {
+          console.error('Error saving files to activity:', saveError);
+          // Don't fail the upload if saving to activity fails
+        }
+        
         // Clear files after short delay
         setTimeout(() => {
           setFilesState([]);
@@ -124,7 +134,7 @@ export function FileBatchProvider({ children }: { children: ReactNode }) {
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [files, getToken]);
+  }, [files, getToken, saveUploadedFiles]);
 
   const cancelUpload = useCallback(() => {
     setUploadState({ status: 'idle', progress: 0 });
